@@ -3,4 +3,7 @@ Imports:
     here,
     tidymodels,
     tidyverse,
-	conflicted
+	  conflicted,
+	  skimr
+Suggests:
+    paint

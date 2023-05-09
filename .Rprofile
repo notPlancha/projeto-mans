@@ -13,4 +13,9 @@
 	}, error= function(e){
 		print("some libraries are not installed, not loading .Rprofile. Do devtools::install_deps()")
 	})
+	if(system.file(package = "paint") != ""){
+	 paint::mask_print()
+	}else{
+	  print("paint not installed; not loading")
+	}
 }

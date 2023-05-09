@@ -4,3 +4,14 @@ output: html_notebook
 ---
 
 Hello world!
+```{r}
+df <- haven::read_sav(here("data", "STU_QQQ_5.sav"))
+df %>% glimpse()
+```
+
+```{r}
+options(scipen=999)
+df %>% skimr::skim()
+```
+
+
