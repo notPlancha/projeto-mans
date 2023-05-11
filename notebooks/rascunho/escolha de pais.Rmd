@@ -1,0 +1,47 @@
+---
+title: "Projeto"
+author: "grupo 6sigma"
+date: "2023-05-10"
+output: html_notebook
+---
+
+### Limpeza
+```{r}
+rm(list = ls()) # ??
+```
+
+# Leitura dos dados
+```{r}
+dados <- haven::read_sav(here("data", "STU_QQQ_5.sav"))
+dados
+```
+
+## Omissos de cada coluna
+```{r}
+colSums(is.na(dados))
+```
+```{r}
+# A coluna dos Paises não tem nulos
+sum(is.na(dados$CNT))
+```
+
+```{r}
+dados %>%
+  mutate(NumNulos = rowSums(is.na(.))) %>%
+  group_by(CNT) %>%
+  summarize(TotalNulos = sum(NumNulos),
+            NumLinhas = n(),
+            PercentNulos = (TotalNulos / (NumLinhas * ncol(dados))) * 100,
+            .groups = "drop") %>% 
+  arrange(desc(NumLinhas))
+```
+
+```{r}
+Espanha <- dados %>% filter(CNT == "ESP")
+Espanha
+```
+
+```{r}
+dim(Espanha)
+```
+

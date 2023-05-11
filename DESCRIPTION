@@ -4,6 +4,7 @@ Imports:
     tidymodels,
     tidyverse,
 	  conflicted,
-	  skimr
+	  skimr,
+	  haven
 Suggests:
     paint
