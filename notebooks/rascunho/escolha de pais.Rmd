@@ -5,11 +5,6 @@ date: "2023-05-10"
 output: html_notebook
 ---
 
-### Limpeza
-```{r}
-rm(list = ls()) # ??
-```
-
 # Leitura dos dados
 ```{r}
 dados <- haven::read_sav(here("data", "STU_QQQ_5.sav"))
