@@ -5,6 +5,9 @@ Imports:
     tidyverse,
 	  conflicted,
 	  skimr,
-	  haven
+	  haven,
+	  tidylog,
+	  SmartEda,
+	  janitor
 Suggests:
     paint

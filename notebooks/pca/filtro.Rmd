@@ -1,0 +1,39 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+df <- readRDS(here("data", "STU_QQQ_5.rds"))
+df %>% head()
+```
+
+```{r}
+df %>% reframe(across(where(is.labelled), print_labels))
+```
+
+```{r}
+df
+```
+
+
+```{r}
+library(janitor)
+df %>% 
+  filter(CNT == "IRL") %>% 
+  haven::as_factor() %>% # changes to its value
+  remove_empty() %>% # rows and columns
+  remove_constant() -> dfI
+dfI
+```
+
+
+```{r}
+if(TRUE){
+  dfI |> SmartEDA::ExpReport(op_file="temp.html")
+}
+```
+
+```{r}
+dfI %>% write_rds(here("data", "filtered.rds"))
+```

@@ -6,10 +6,21 @@
 		library(here)
 		library(tidyverse)
 		library(conflicted)
-		conflicts_prefer(
-			dplyr::filter(),
-			dplyr::lag()
-		)
+	  library(tidylog)
+	  library(haven) # rds needs this
+	  # do conflicted::conflict_scout() if needed
+	  conflict_prefer_all("tidylog", c("dtplyr", "dplyr"), quiet = T)
+	  conflicts_prefer(
+	    tidylog::filter(),
+	    dplyr::lag(),
+	    stringr::fixed(),
+	    recipes::step(),
+	    scales::col_factor(),
+	    dplyr::left_join(),# still broken in 1.0.1.9000 (tidylog/issues/58)
+	    dplyr::join_by()
+	    # let discard be,
+	    # let spec be
+	  )
 	}, error= function(e){
 		print("some libraries are not installed, not loading .Rprofile. Do devtools::install_deps()")
 	})

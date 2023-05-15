@@ -11,6 +11,7 @@ dados <- haven::read_sav(here("data", "STU_QQQ_5.sav"))
 dados
 ```
 
+
 ## Omissos de cada coluna
 ```{r}
 colSums(is.na(dados))
@@ -27,6 +28,9 @@ dados %>%
   summarize(TotalNulos = sum(NumNulos),
             NumLinhas = n(),
             PercentNulos = (TotalNulos / (NumLinhas * ncol(dados))) * 100,
+            MeanScience = mean(PV1SCIE, na.rm = TRUE),
+            MeanRead = mean(PV1READ, na.rm = TRUE),
+            MeanMath = mean(PV1MATH, na.rm = TRUE),
             .groups = "drop") %>% 
   arrange(desc(NumLinhas))
 ```
@@ -38,5 +42,59 @@ Espanha
 
 ```{r}
 dim(Espanha)
+```
+
+```{r}
+EspanhaSemiLimpa <- Espanha %>% select(where(~ !all(is.na(.))))
+dim(EspanhaSemiLimpa)
+```
+```{r}
+EspanhaLimpa <- na.omit(EspanhaSemiLimpa)
+dim(EspanhaLimpa)
+```
+```{r}
+Espanha <- EspanhaLimpa %>% select_if(is.numeric)
+rm(EspanhaLimpa)
+rm(EspanhaSemiLimpa)
+```
+
+```{r}
+
+#Correlation plot with colors (too many attributes)
+correlation <- cor(Espanha)
+ggcorrplot::ggcorrplot(correlation)
+
+#Correlation matrix
+round(correlation, 3)
+
+#KMO measure 
+KMO(correlation)
+
+cortest.bartlett(correlation)
+
+#Scalling of attributes data
+data_scaled <- scale(Espanha)
+
+#Assume the number of components = 34
+pc34 <- principal(data_scaled, nfactors=34, rotate="none")
+pc34$loadings
+
+#Screeplot - Find the elbow
+plot(pc34$values, type = "b", main = "Scree plot for FIFA19 dataset",
+     xlab = "Number of PC", ylab = "Eigenvalue") 
+
+#Eigenvalues - Variances of the principal components 
+round(pc34$values,3)
+
+#Using Kaiser criterion (9 component solution)
+#5 component solution without rotation
+pc9 <- principal(data_scaled, nfactors=9, rotate="none", scores=TRUE)
+
+#communality of 5 component solution
+round(pc9$communality,3)
+
+#5 component solution with rotation (varimax)
+pc9r <- principal(data_scaled, nfactors=9, rotate="varimax")
+pc9r$loadings
 ```
 
