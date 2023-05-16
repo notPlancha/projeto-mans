@@ -5,22 +5,37 @@ date: "2023-05-10"
 output: html_notebook
 ---
 
-# Leitura dos dados
+### Bibliotecas
 ```{r}
-dados <- haven::read_sav(here("data", "STU_QQQ_5.sav"))
-dados
+library(psych)
+library(corrplot)
+library(haven)
+library(dplyr)
+library(magrittr)
 ```
 
+# Leitura dos dados
+```{r}
+dados <- readRDS(here("data", "STU_QQQ_5.rds"))
+dados
+```
 
 ## Omissos de cada coluna
 ```{r}
 colSums(is.na(dados))
 ```
+
 ```{r}
 # A coluna dos Paises não tem nulos
 sum(is.na(dados$CNT))
 ```
 
+## Países Existentes na base de dados
+```{r}
+unique(dados$CNT)
+```
+
+### Visualização das características de cada um dos países
 ```{r}
 dados %>%
   mutate(NumNulos = rowSums(is.na(.))) %>%
@@ -35,45 +50,61 @@ dados %>%
   arrange(desc(NumLinhas))
 ```
 
+# Irlanda
 ```{r}
-Espanha <- dados %>% filter(CNT == "ESP")
-Espanha
+Irlanda <- dados %>% filter(CNT == "IRL")
+Irlanda
+```
+
+## Características da Irlanda
+```{r}
+dim(Irlanda)
+describe(Irlanda)
+```
+## Limpeza dos valores omissos
+```{r}
+IrlandaSemiLimpa <- Irlanda %>% select(where(~ !all(is.na(.))))
+dim(IrlandaSemiLimpa)
 ```
 
 ```{r}
-dim(Espanha)
+IrlandaLimpa <- na.omit(IrlandaSemiLimpa)
+dim(IrlandaLimpa)
 ```
 
 ```{r}
-EspanhaSemiLimpa <- Espanha %>% select(where(~ !all(is.na(.))))
-dim(EspanhaSemiLimpa)
-```
-```{r}
-EspanhaLimpa <- na.omit(EspanhaSemiLimpa)
-dim(EspanhaLimpa)
-```
-```{r}
-Espanha <- EspanhaLimpa %>% select_if(is.numeric)
-rm(EspanhaLimpa)
-rm(EspanhaSemiLimpa)
+Irlanda <- IrlandaLimpa %>% select_if(is.numeric)
+rm(IrlandaLimpa)
+rm(IrlandaSemiLimpa)
 ```
 
 ```{r}
+Irlanda
+describe(Irlanda)
+```
 
+## Correlações das colunas
+```{r}
 #Correlation plot with colors (too many attributes)
-correlation <- cor(Espanha)
-ggcorrplot::ggcorrplot(correlation)
+correlation <- cor(Irlanda)
+corrplot(correlation)
 
 #Correlation matrix
 round(correlation, 3)
+```
 
+```{r}
 #KMO measure 
 KMO(correlation)
 
 cortest.bartlett(correlation)
+```
 
+
+## PCA
+```{r}
 #Scalling of attributes data
-data_scaled <- scale(Espanha)
+data_scaled <- scale(Irlanda, center = TRUE, scale = TRUE)
 
 #Assume the number of components = 34
 pc34 <- principal(data_scaled, nfactors=34, rotate="none")
@@ -97,4 +128,3 @@ round(pc9$communality,3)
 pc9r <- principal(data_scaled, nfactors=9, rotate="varimax")
 pc9r$loadings
 ```
-
