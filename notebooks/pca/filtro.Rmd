@@ -9,24 +9,55 @@ df %>% head()
 ```
 
 ```{r}
-df %>% reframe(across(where(is.labelled), print_labels))
-```
-
-```{r}
-df
-```
-
-
-```{r}
 library(janitor)
 df %>% 
   filter(CNT == "IRL") %>% 
-  haven::as_factor() %>% # changes to its value
+  # haven::as_factor() %>% # changes to its value
   remove_empty() %>% # rows and columns
   remove_constant() -> dfI
 dfI
 ```
 
+
+```{r}
+(dfI %>% 
+  summarise(across(where(is.labelled), \(x) attributes(x)$label)) %>% 
+  tidylog::pivot_longer(everything(), names_to = "Column", values_to = "Description") %>% 
+  rowwise() %>% 
+  mutate(Type = sapply(Column, \(x) class(df[[x]])[3])) %>% 
+  mutate(First_5_Values = sapply(Column, \(x) paste(head(na.omit(df[[x]]), 5) , collapse = ", "))) -> dfI.desc)
+```
+
+```{r}
+dfI.desc %>% View()
+```
+
+
+
+Siglas: 
+
+* WLE -> Warm likelihood estimates
+* ICT -> information and communication technologies (tipo telemoveis e pcs)
+
+Colunas a agupar a priori
+* TODO
+
+```{r}
+# imputacao pq o porf pediu aparentemente n sei pra que tho acho estupiido but it is what it is
+library(mice)
+imp <- dfI %>% zap_labels() %>% mice(method = "norm.predict", m = 1)
+complete(imp)
+```
+
+```{r}
+cor(dfI %>% select(PV1SCIE,PV1READ,PV1MATH))
+```
+
+
+
+```{r}
+df %>% reframe(across(where(is.labelled), print_labels))
+```
 
 ```{r}
 if(TRUE){

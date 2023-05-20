@@ -165,10 +165,8 @@ Se o valor-p (p-value) calculado no teste de esfericidade de Bartlett for menor 
 
 ```{r}
 data_scaled <- scale(Irlanda)
-data_scaled
+data_scaled %>% glimpse()
 ```
-
-$$ - - - - - - - $$
 
 # PCA
 
@@ -184,7 +182,7 @@ Nesta parte, passaremos então para o processo de criação de PCA's. Podemos en
 
 * **PCA de Atitudes e Comportamentos**:
     - Variáveis de interesse: Variáveis relacionadas a atitudes, motivação, autoeficácia, disciplina, participação em atividades extracurriculares, etc.
-    - Objetivo: Identificar padrões de atitudes e comportamentos dos alunos que podem influenciar seu desempenho acadêmico e bem-estar geral.
+    - Objetivo: Identificar padrões de atitudes e comportamentos dos alunos que podem influenciar seu desempenho académico e bem-estar geral.
 
 * **PCA de Ambiente Escolar**:
     - Variáveis de interesse: Variáveis relacionadas ao ambiente escolar, como tamanho da turma, recursos educacionais disponíveis, clima escolar, relacionamento professor-aluno, etc.
@@ -225,12 +223,12 @@ pc1$loadings
 plot(pc1$values, type = "b", main = "Scree plot for Desempenho acadêmico",
      xlab = "Number of PC", ylab = "Eigenvalue")
 ```
+
+
 ```{r}
 round(pc1$values,3)
 round(pc1$communality,3)
 ```
-
-$$- - -$$
 
 ```{r}
 #Assume the number of components = 34

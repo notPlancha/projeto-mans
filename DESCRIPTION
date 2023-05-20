@@ -8,6 +8,7 @@ Imports:
 	  haven,
 	  tidylog,
 	  SmartEda,
-	  janitor
+	  janitor,
+	  mice
 Suggests:
     paint

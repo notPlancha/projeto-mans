@@ -9,7 +9,7 @@
 	  library(tidylog)
 	  library(haven) # rds needs this
 	  # do conflicted::conflict_scout() if needed
-	  conflict_prefer_all("tidylog", c("dtplyr", "dplyr"), quiet = T)
+	  conflict_prefer_all("tidylog", c("dtplyr", "dplyr", "tidyr"), quiet = T)
 	  conflicts_prefer(
 	    tidylog::filter(),
 	    dplyr::lag(),
