@@ -22,7 +22,7 @@
 	    # let spec be
 	  )
 	}, error= function(e){
-		print("some libraries are not installed, not loading .Rprofile. Do devtools::install_deps()")
+		print("some libraries are not installed, not loading .Rprofile. Do remotes::install_deps()")
 	})
 	if(system.file(package = "paint") != ""){
 	 paint::mask_print()
