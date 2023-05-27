@@ -20,13 +20,22 @@ dfI
 
 
 ```{r}
-(dfI %>% 
+options(scipen = 999)
+dfI %>% 
   summarise(across(where(is.labelled), \(x) attributes(x)$label)) %>% 
   tidylog::pivot_longer(everything(), names_to = "Column", values_to = "Description") %>% 
   rowwise() %>% 
   mutate(Type = sapply(Column, \(x) class(df[[x]])[3])) %>% 
-  mutate(First_5_Values = sapply(Column, \(x) paste(head(na.omit(df[[x]]), 5) , collapse = ", "))) -> dfI.desc)
+  mutate(First_5_Values = sapply(Column, \(x) paste(head(na.omit(df[[x]]), 5) , collapse = ", "))) %>%
+  mutate(naPercent = sapply(Column, \(x) dfI %>% zap_labels() %>% .[[x]] %>% is.na() %>% mean %>% "*"(100) %>% round(2))) -> dfI.desc
+dfI.desc %>% View()
+dfI.desc
 ```
+
+```{r}
+dfIZ <- dfI %>% zap_labels() # zap doesn't seem to fully work
+```
+
 
 ```{r}
 dfI.desc %>% View()
@@ -42,29 +51,20 @@ Siglas:
 Colunas a agupar a priori
 * TODO
 
-```{r}
-# imputacao pq o porf pediu aparentemente n sei pra que tho acho estupiido but it is what it is
-library(mice)
-imp <- dfI %>% zap_labels() %>% mice(method = "norm.predict", m = 1)
-complete(imp)
-```
 
 ```{r}
 cor(dfI %>% select(PV1SCIE,PV1READ,PV1MATH))
 ```
 
 
-
 ```{r}
-df %>% reframe(across(where(is.labelled), print_labels))
-```
-
-```{r}
-if(TRUE){
+if(FALSE){
   dfI |> SmartEDA::ExpReport(op_file="temp.html")
 }
 ```
 
 ```{r}
-dfI %>% write_rds(here("data", "filtered.rds"))
+dfIZ %>% tibble() %>% arrow::write_csv_arrow(here("data", "filtered.csv")) #for sure zapping with csv
+dfI.desc %>% write_rds(here("data", "description.rds"))
 ```
+

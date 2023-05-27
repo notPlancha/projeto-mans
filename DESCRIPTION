@@ -9,6 +9,9 @@ Imports:
 	  tidylog,
 	  SmartEda,
 	  janitor,
-	  mice
+	  mice,
+	  naniar,
+	  finalfit,
+	  arrow
 Suggests:
     paint
