@@ -7,11 +7,22 @@ output: html_notebook
 
 ### Bibliotecas
 ```{r}
+library(skimr)
+library(txtplot)
+library(cluster)
+library(tidyverse)
+library(caret)
+library(factoextra)
+library(mclust)
+library(readr)
+library(naniar)
+library(here)
 library(psych)
 library(corrplot)
 library(haven)
 library(dplyr)
 library(magrittr)
+options(repr.plot.width=6, repr.plot.height=6)
 ```
 
 # Leitura dos dados
@@ -19,6 +30,8 @@ library(magrittr)
 dados <- readRDS(here("data", "STU_QQQ_5.rds"))
 dados
 ```
+
+
 ## Omissos de cada coluna
 ```{r}
 colSums(is.na(dados))
@@ -51,7 +64,12 @@ dados %>%
 
 # Irlanda
 ```{r}
-Irlanda <- dados %>% filter(CNT == "IRL")
+library(janitor)
+dados %>% 
+  filter(CNT == "IRL") %>% 
+  # haven::as_factor() %>% # changes to its value
+  remove_empty() %>% # rows and columns
+  remove_constant() -> Irlanda
 Irlanda
 ```
 
@@ -61,50 +79,89 @@ dim(Irlanda)
 describe(Irlanda)
 ```
 
+```{r}
+# str(Irlanda)
+```
+
+```{r}
+# summary(Irlanda)
+```
+
+```{r}
+skimr::skim(Irlanda)
+```
+
+```{r}
+summary(Irlanda)
+```
+
+
 ## Limpeza dos valores omissos
+
 ```{r}
 IrlandaSemiLimpa <- Irlanda %>% select(where(~ !all(is.na(.))))
 dim(IrlandaSemiLimpa)
 ```
+```{r}
+nulos_percent <- IrlandaSemiLimpa %>%
+  summarise_all(~ mean(is.na(.)) * 100)
+
+colunas_com_nulos <- colnames(nulos_percent)[nulos_percent > 30]
+colunas_com_nulos
+```
+```{r}
+Irlanda <- select(Irlanda, -one_of(colunas_com_nulos))
+```
+
 
 ```{r}
-IrlandaLimpa <- na.omit(IrlandaSemiLimpa)
-dim(IrlandaLimpa)
+options(scipen = 999)
+Irlanda %>%
+  summarise(across(where(is.labelled), \(x) attributes(x)$label)) %>% 
+  tidylog::pivot_longer(everything(), names_to = "Column", values_to = "Description") %>% 
+  rowwise() %>% 
+  mutate(Type = sapply(Column, \(x) class(dados[[x]])[3])) %>% 
+  mutate(First_5_Values = sapply(Column, \(x) paste(head(na.omit(dados[[x]]), 5) , collapse = ", "))) %>%
+  mutate(naPercent = sapply(Column, \(x) Irlanda %>% zap_labels() %>% .[[x]] %>% is.na() %>% mean %>% "*"(100) %>% round(2))) -> dfI.desc
+dfI.desc %>% View()
+dfI.desc
 ```
 
 ```{r}
-Irlanda <- IrlandaLimpa %>% select_if(is.numeric)
-rm(IrlandaLimpa)
-rm(IrlandaSemiLimpa)
+library(mice)
+Irlanda <- IrlandaSemiLimpa %>% zap_labels() %>% mice(method = "norm.predict", m = 1)
+Irlanda <- complete(Irlanda)
+
+Irlanda %>% summarise_all(~ mean(is.na(.)) * 100)
 ```
 
 ```{r, results='hide'}
-Irlanda
 describe(Irlanda)
 ```
-## Outliers
+```{r}
+colunas_nao_numericas <- names(Irlanda)[!sapply(Irlanda, is.numeric)]
+colunas_nao_numericas
+```
+```{r}
+valores_unicos <- lapply(Irlanda[colunas_nao_numericas], unique)
 
-```{r, results='hide'}
-identificar_outliers <- function(coluna) {
-  desvio_padrao <- sd(coluna)
-  limite_superior <- mean(coluna) + 3 * desvio_padrao
-  limite_inferior <- mean(coluna) - 3 * desvio_padrao
-  outliers <- coluna < limite_inferior | coluna > limite_superior
-  return(outliers)
+# Exibir os valores únicos de cada coluna
+for (i in seq_along(valores_unicos)) {
+  coluna <- colunas_nao_numericas[i]
+  valores <- valores_unicos[[i]]
+  cat("Valores únicos da coluna", coluna, ":\n")
+  print(valores)
+  cat("\n")
 }
+```
 
-# Identificar outliers em cada coluna
-outliers_por_coluna <- lapply(Irlanda, identificar_outliers)
 
-# Mostrar os valores outliers em cada coluna
-for (i in 1:length(outliers_por_coluna)) {
-  coluna <- outliers_por_coluna[[i]]
-  coluna_outliers <- Irlanda[coluna, i]
-  if (length(coluna_outliers) > 0) {
-    print(paste("Coluna:", names(Irlanda)[i]))
-    print(coluna_outliers)
-  }
-}
+```{r}
+colunas_nao_numericas <- colunas_nao_numericas[-5]
+colunas_nao_numericas
+
+Irlanda[colunas_nao_numericas] <- lapply(Irlanda[colunas_nao_numericas], as.factor)
+Irlanda <- Irlanda %>% select_if(is.numeric)
 ```
 
 # Tratamento dos dados
@@ -115,9 +172,49 @@ for (i in 1:length(outliers_por_coluna)) {
 
   2. Antes de aplicar o PCA, é importante verificar se as variáveis estão em escalas comparáveis. Variáveis em diferentes escalas podem ter diferentes variações e isso pode distorcer a análise do PCA.
   
+## Seleção das variáveis
+```{r}
+# Colunas a ver:
+## Parents - MOTHER + FATHER
+
+### Mother
+Mother <- c("BMMJ1", "MISCED")
+Irlanda <- Irlanda[, -which(names(Irlanda) %in% Mother)]
+Irlanda
+### Father
+#### HISEI - Index highest parental occupational status (se calhar poderiamos criar uma nova variável que é a soma das 2 apagadas?)
+Father <- c("BFMJ2", "FISCED")
+Irlanda <- Irlanda[, -which(names(Irlanda) %in% Father)]
+
+## Number of classes (usar o total apenas)
+Class <- c("ST059Q03TA", "ST059Q02TA", "ST059Q01TA")
+Irlanda <- Irlanda[, -which(names(Irlanda) %in% Class)]
+
+## Learning Time
+LearningTime <- c("MMINS", "LMINS", "SMINS")
+Irlanda <- Irlanda[, -which(names(Irlanda) %in% LearningTime)]
+
+## Variáveis deixadas de lado, pois, ou não encotramos informação sonbre elas ou não seria úteis
+### ST001D01T possui o ano escolar (8º, 9º, 10º, 11º) em que cada um dos aluno está
+### ISCEDL só possui 2 e 3, que é associado ao ensino secundário "baixo" e "alto"
+### Retiradas pelo seu valor fraco
+# - REPEAT
+# - INFOJOB2
+# - SOCONPA
+# - PRESUPP
+# - ATTLNACT
+# - IMMIG
+Resto <- c("AGE", "ST001D01T", "ISCEDL", "SOIAICT", "AUTICT", "BEINGBULLIED", "STUBMI", "REPEAT", "INFOJOB2", "SOCONPA", "PRESUPP", "ATTLNACT")
+Irlanda <- Irlanda[, -which(names(Irlanda) %in% Resto)]
+
+
+```
+
+  
 ## Correlações das colunas
 ```{r, results='hide'}
 #Correlation plot with colors (too many attributes)
+
 correlation <- cor(Irlanda)
 corrplot(correlation)
 
@@ -136,20 +233,34 @@ O valor do KMO varia de 0 a 1 e, quanto mais próximo de 1, melhor a adequação
 Vamos então visualizar as variáveis que não são adequadas para aplica o PCA
 
 ```{r}
-kmo_result <- KMO(correlation)
-str(kmo_result)
-# Obtém as variáveis com KMO abaixo de 0.6
-low_kmo_variables <- kmo_result$MSAi[kmo_result$MSAi < 0.6]
-length(low_kmo_variables)
-low_kmo_variables
+length(Irlanda)
 ```
+
+
+```{r}
+kmo_result <- KMO(correlation)
+kmo_result
+str(kmo_result)
+# Obtém as variáveis com KMO abaixo de 0.5
+low_kmo_variables <- names(kmo_result$anti.image)[kmo_result$anti.image < 0.5]
+low_kmo_variables
+Irlanda <- Irlanda[, !names(Irlanda) %in% low_kmo_variables]
+# Irlanda <- Irlanda[, -which(names(Irlanda) %in% low_kmo_variables)]
+# low_kmo_variables
+```
+
+```{r}
+length(Irlanda)
+```
+
+
 ### Possiveis variáveis fortes
 
 ```{r}
 # Obtém as variáveis com KMO acima, ou igual, a 0.8
-high_kmo_variables <- kmo_result$MSAi[kmo_result$MSAi >= 0.8]
-length(high_kmo_variables)
-high_kmo_variables
+# high_kmo_variables <- kmo_result$MSAi[kmo_result$MSAi >= 0.8]
+# length(high_kmo_variables)
+# high_kmo_variables
 ```
 
 ## Teste de esfericidade de Bartlett em uma matriz de correlação.
@@ -193,63 +304,43 @@ Nesta parte, passaremos então para o processo de criação de PCA's. Podemos en
 ```{r}
 colunas <- colnames(data_scaled)
 colunas
-```
-
-```{r}
-correlation1 <- cor(data_scaled[, -1], data_scaled[, 1])
-
-# Definir o limite de correlação desejado
-limite_correlacao <- 0.3
-
-# Identificar as colunas com correlação forte
-colunas_fortes <- row.names(correlation1)[which(abs(correlation1) > limite_correlacao)]
-
-colunas_fortes <- append(colunas_fortes, "PV1SCIE")
-  
-# Exibir as colunas com correlação forte
-print(colunas_fortes)
-
+length(colunas)
 ```
 
 
-## Criação dos PCA
+## Criação do PCA
 
 ```{r}
-pc1 <- principal(data_scaled[, colunas_fortes], nfactors=length(colunas_fortes), rotate="none")
-pc1$loadings
-```
-
-```{r}
-plot(pc1$values, type = "b", main = "Scree plot for Desempenho acadêmico",
-     xlab = "Number of PC", ylab = "Eigenvalue")
-```
-
-
-```{r}
+pc1 <- principal(data_scaled, nfactors=ncol(data_scaled), rotate="none")
 round(pc1$values,3)
-round(pc1$communality,3)
 ```
 
 ```{r}
-#Assume the number of components = 34
-pc34 <- principal(data_scaled, nfactors=3, rotate="none")
-pc34$loadings
-
-#Screeplot - Find the elbow
-plot(pc34$values, type = "b", main = "Scree plot for FIFA19 dataset",
-     xlab = "Number of PC", ylab = "Eigenvalue") 
-
-#Eigenvalues - Variances of the principal components 
-round(pc34$values,3)
-
-#Using Kaiser criterion (9 component solution)
-#5 component solution without rotation
-pc9 <- principal(data_scaled, nfactors=9, rotate="none", scores=TRUE)
-
-#communality of 5 component solution
-round(pc9$communality,3)
-
-#5 component solution with rotation (varimax)
-pc9r <- principal(data_scaled, nfactors=9, rotate="varimax")
-pc9r$loadings
+plot(pc1$values, type = "b", main = "Scree plot for Irland dataset", 
+     xlab = "Number of PC", ylab = "Eigenvalue")
+# Entre 17 e 22
 ```
+## Experiência com 12
+
+```{r}
+pc12 <- principal(data_scaled, nfactors = 12, rotate = "none")
+pc12$loadings
+round(pc12$communality,2)
+```
+
+```{r}
+pc12r <- principal(data_scaled, nfactors= 12, rotate="varimax")
+pc12r$loadings
+round(pc12r$communality,2)
+#RC10 pode ser caracteristicas dos pais
+```
+
+
+```{r}
+pc12sc <- principal(data_scaled, nfactors=10, rotate="none", scores = TRUE)
+
+round(pc12sc$scores,3)
+mean(pc12sc$scores[,1])
+sd(pc12sc$scores[,1])
+```
+
