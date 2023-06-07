@@ -109,8 +109,20 @@ nulos_percent <- IrlandaSemiLimpa %>%
 colunas_com_nulos <- colnames(nulos_percent)[nulos_percent > 30]
 colunas_com_nulos
 ```
+
 ```{r}
 Irlanda <- select(Irlanda, -one_of(colunas_com_nulos))
+```
+
+```{r}
+Irlanda <- Irlanda[!is.na(Irlanda$BEINGBULLIED), ]
+```
+
+```{r}
+dim(Irlanda)
+```
+```{r}
+colnames(Irlanda)
 ```
 
 
@@ -178,20 +190,20 @@ Irlanda <- Irlanda %>% select_if(is.numeric)
 ## Parents - MOTHER + FATHER
 
 ### Mother
-Mother <- c("BMMJ1", "MISCED")
-Irlanda <- Irlanda[, -which(names(Irlanda) %in% Mother)]
-Irlanda
+# Mother <- c("BMMJ1", "MISCED")
+# Irlanda <- Irlanda[, -which(names(Irlanda) %in% Mother)]
+# Irlanda
 ### Father
 #### HISEI - Index highest parental occupational status (se calhar poderiamos criar uma nova variável que é a soma das 2 apagadas?)
-Father <- c("BFMJ2", "FISCED")
-Irlanda <- Irlanda[, -which(names(Irlanda) %in% Father)]
+# Father <- c("BFMJ2", "FISCED")
+# Irlanda <- Irlanda[, -which(names(Irlanda) %in% Father)]
 
 ## Number of classes (usar o total apenas)
-Class <- c("ST059Q03TA", "ST059Q02TA", "ST059Q01TA")
+Class <- c("ST059Q03TA", "ST059Q02TA", "ST059Q01TA", "ST060Q01NA")
 Irlanda <- Irlanda[, -which(names(Irlanda) %in% Class)]
 
 ## Learning Time
-LearningTime <- c("MMINS", "LMINS", "SMINS")
+LearningTime <- c("MMINS", "LMINS", "SMINS", "TMINS")
 Irlanda <- Irlanda[, -which(names(Irlanda) %in% LearningTime)]
 
 ## Variáveis deixadas de lado, pois, ou não encotramos informação sonbre elas ou não seria úteis
@@ -204,13 +216,13 @@ Irlanda <- Irlanda[, -which(names(Irlanda) %in% LearningTime)]
 # - PRESUPP
 # - ATTLNACT
 # - IMMIG
-Resto <- c("AGE", "ST001D01T", "ISCEDL", "SOIAICT", "AUTICT", "BEINGBULLIED", "STUBMI", "REPEAT", "INFOJOB2", "SOCONPA", "PRESUPP", "ATTLNACT")
+Resto <- c("AGE", "ST001D01T", "ISCEDL", "SOIAICT", "AUTICT", "STUBMI", "INFOJOB2", "SOCONPA", "ATTLNACT", "IMMIG", "DISCLIMA", "ICTSCH", "ICTHOME", "JOYREADP")
 Irlanda <- Irlanda[, -which(names(Irlanda) %in% Resto)]
 
 
 ```
 
-  
+
 ## Correlações das colunas
 ```{r, results='hide'}
 #Correlation plot with colors (too many attributes)
@@ -242,11 +254,9 @@ kmo_result <- KMO(correlation)
 kmo_result
 str(kmo_result)
 # Obtém as variáveis com KMO abaixo de 0.5
-low_kmo_variables <- names(kmo_result$anti.image)[kmo_result$anti.image < 0.5]
+low_kmo_variables <- names(kmo_result$MSAi)[kmo_result$MSAi < 0.6]
 low_kmo_variables
 Irlanda <- Irlanda[, !names(Irlanda) %in% low_kmo_variables]
-# Irlanda <- Irlanda[, -which(names(Irlanda) %in% low_kmo_variables)]
-# low_kmo_variables
 ```
 
 ```{r}
@@ -318,29 +328,20 @@ round(pc1$values,3)
 ```{r}
 plot(pc1$values, type = "b", main = "Scree plot for Irland dataset", 
      xlab = "Number of PC", ylab = "Eigenvalue")
-# Entre 17 e 22
+# 13
 ```
 ## Experiência com 12
 
 ```{r}
-pc12 <- principal(data_scaled, nfactors = 12, rotate = "none")
+pc12 <- principal(data_scaled, nfactors = 13, rotate = "none")
 pc12$loadings
 round(pc12$communality,2)
 ```
 
 ```{r}
-pc12r <- principal(data_scaled, nfactors= 12, rotate="varimax")
+pc12r <- principal(data_scaled, nfactors= 13, rotate="varimax")
 pc12r$loadings
 round(pc12r$communality,2)
 #RC10 pode ser caracteristicas dos pais
-```
-
-
-```{r}
-pc12sc <- principal(data_scaled, nfactors=10, rotate="none", scores = TRUE)
-
-round(pc12sc$scores,3)
-mean(pc12sc$scores[,1])
-sd(pc12sc$scores[,1])
 ```
 
