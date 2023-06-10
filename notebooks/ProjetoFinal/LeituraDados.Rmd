@@ -1,0 +1,208 @@
+---
+title: "Projeto Métodos de Aprendizagem Não supervisionados - Leitura dos Dados"
+author: "grupo 6sigma"
+date: "2023-05-10"
+output:
+  prettydoc::html_pretty:
+    theme: leonids
+    highlight: github
+---
+
+### Bibliotecas
+
+```{r}
+pacman::p_load(
+               "sjstats", "plotrix", "skimr", 
+               "txtplot", "cluster", "tidyverse",
+               "caret", "factoextra", "mclust", "htmlTable",
+               "readr", "naniar", "here", "modeest",
+               "psych", "corrplot", "haven", "kableExtra",
+               "haven", "dplyr" , "magrittr", "mice"
+               )
+options(repr.plot.width=6, repr.plot.height=6)
+```
+
+## Leitura dos dados
+
+```{r}
+dados <- readRDS(here("data", "STU_QQQ_5.rds"))
+```
+
+# Irlanda
+
+```{r}
+dados %>% 
+  dplyr::filter(CNT == "IRL") %>% 
+  zap_labels()-> Irlanda
+
+tabela_estilo <- kable(Irlanda[0:10, 0:10], format = "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  add_header_above(c("Dados do PISA dos estudantes da Irlanda" = 10), color = "black", background = "orange") %>%
+  row_spec(row = 0, bold = TRUE, color = "white", background = "green") %>%
+  row_spec(row = 1:10, italic = TRUE) %>%
+  column_spec(column = 1:10, bold = TRUE)
+
+tabela_estilo
+
+# Usar: DT, kableExtra ou gt
+```
+
+## Eliminar os casos mais graves de dados omissos
+
+```{r}
+Irlanda <- Irlanda %>% select(where(~ !all(is.na(.))))
+dim(Irlanda)
+```
+
+```{r}
+nulos_percent <- Irlanda %>%
+  summarise_all(~ mean(is.na(.)) * 100)
+
+colunas_com_nulos <- colnames(nulos_percent)[nulos_percent > 15]
+colunas_com_nulos
+```
+
+```{r}
+Irlanda <- select(Irlanda, -one_of(colunas_com_nulos))
+```
+
+## Colunas não numéricas
+
+```{r}
+colunas_nao_numericas <- names(Irlanda)[!sapply(Irlanda, is.numeric)]
+colunas_nao_numericas
+```
+
+```{r}
+valores_unicos <- lapply(Irlanda[colunas_nao_numericas], function(x) unname(unique(x)))
+
+# Exibir os valores únicos de cada coluna
+for (i in seq_along(valores_unicos)) {
+  coluna <- colunas_nao_numericas[i]
+  valores <- valores_unicos[[i]]
+  cat("Valores únicos da coluna", coluna, ":\n")
+  print(valores)
+  cat("\n")
+}
+```
+
+```{r}
+colunas_nao_numericas <- colunas_nao_numericas[-5]
+colunas_nao_numericas
+
+Irlanda[colunas_nao_numericas] <- lapply(Irlanda[colunas_nao_numericas], as.factor)
+Irlanda <- Irlanda %>% select_if(is.numeric)
+```
+## Características da Irlanda
+
+```{r, results='hide'}
+
+my_skim <- skim_with(numeric = sfl("SEM" = plotrix::std.error,
+                                   "CV" = sjstats::cv,
+                                   "Mode" = ~ modeest::mlv1(., na.rm = T, method = "mfv"),
+                                   "sk" = ~ PerformanceAnalytics::skewness(.,na.rm=T,method = "sample"),
+                                   "ku" = ~ PerformanceAnalytics::kurtosis(., na.rm = T, method = "sample_excess")),
+                     append = T)
+
+x <-Irlanda[, sapply(Irlanda, is.numeric)] %>%
+  my_skim() %>%
+  knitr::kable(digits=2, caption = 'Descriptives with histogram', col.names = c("Scale of Measurement","Item","$N_{missing}$","Complete prop.", "$M$","$SD$","$Min$","$P_{25}$", "$Mdn$","$P_{75}$", "$Max$", "Histogram","$SEM$", "$CV$","$Mode$", "$sk$","$ku$"), )
+
+tabela_html <- htmlTable(x, align = "c", caption = 'Descriptives with histogram')
+tabela_html
+```
+
+### Extra
+
+Sabendo que o objetivo é criar PCA's, iremos já retirar os dados de perfil
+
+```{r}
+Perfil <- c("ST004D01T", "AGE")
+Irlanda <- Irlanda[, -which(names(Irlanda) %in% Perfil)]
+```
+
+## Limpeza dos valores omissos
+
+```{r}
+dim(Irlanda)
+```
+
+
+Antes de prosseguirmos para a limpeza dos dados, iremos primeiro implementar o teste de Little (MCAR)
+
+```{r}
+mcar_test(Irlanda[, 0:40])
+```
+
+O teste MCAR (Missing Completely at Random) é um teste estatístico usado para avaliar se os dados omissos em um conjunto de dados ocorrem de forma completamente aleatória, por outras palavras, se a probabilidade de um dado estar omisso não está relacionada a nenhum valor observado ou não observado no conjunto de dados. A hipótese nula do teste MCAR é que os dados omissos estão distribuídos de forma aleatória, sem qualquer relação com os dados observados ou não observados.
+
+Podemos então concluir que como $P.Value = 1 > \alpha = 0.05$, não rejeitamos a hipótese nula, isto é, os dados omissos são completamente aleatórios. Já tendo isto em mente, podemos então prosseguir com a resolução deste problema, podendo optar por imputar os dados ou simplesmente largar todos os dados omissos.
+
+### Linhas com omissos
+
+```{r}
+# Apagar as linhas que possuem 20% das colunas nulas
+
+null_percentage <- rowSums(is.na(Irlanda)) / ncol(Irlanda)
+Irlanda <- Irlanda[null_percentage < 0.2, ]
+```
+
+### Colunas com omissos
+#### Com Imputação
+
+```{r}
+IrlandaImput <- Irlanda %>% zap_labels() %>% mice(method = "norm.predict", m = 1)
+IrlandaImput <- complete(IrlandaImput)
+```
+
+#### Sem Imputação
+
+```{r}
+IrlandaNoImput <- Irlanda[complete.cases(Irlanda), ]
+```
+
+Relativamente à criação dos PCA's, esta será feita em outros ficheiros, cada um deles com um dataframe diferente.
+
+# Gravar os dados
+
+```{r}
+# Base de dados com os dados imputados
+saveRDS(IrlandaImput, "IrlandaImput.rds")
+
+# Base de dados com os dados omissos eliminados
+saveRDS(IrlandaNoImput, "IrlandaNoImput.rds")
+```
+
+
+# Anexos
+
+```{r, eval=FALSE}
+dados %>%
+  mutate(NumNulos = rowSums(is.na(.))) %>%
+  group_by(CNT) %>%
+  summarize(TotalNulos = sum(NumNulos),
+            NumEstudantes = n(),
+            PercentNulos = (TotalNulos / (NumLinhas * ncol(dados))) * 100,
+            MeanScience = mean(PV1SCIE, na.rm = TRUE),
+            MeanRead = mean(PV1READ, na.rm = TRUE),
+            MeanMath = mean(PV1MATH, na.rm = TRUE),
+            .groups = "drop") %>% 
+  arrange(desc(NumLinhas))
+```
+
+```{r, eval=FALSE}
+dados %>% 
+  dplyr::filter(CNT == "IRL") -> Irlanda
+Irlanda
+
+options(scipen = 999)
+Irlanda %>%
+  summarise(across(where(is.labelled), \(x) attributes(x)$label)) %>% 
+  tidylog::pivot_longer(everything(), names_to = "Column", values_to = "Description") %>% 
+  rowwise() %>% 
+  mutate(Type = sapply(Column, \(x) class(dados[[x]])[3])) %>% 
+  mutate(First_5_Values = sapply(Column, \(x) paste(head(na.omit(dados[[x]]), 5) , collapse = ", "))) %>%
+  mutate(naPercent = sapply(Column, \(x) Irlanda %>% zap_labels() %>% .[[x]] %>% is.na() %>% mean %>% "*"(100) %>% round(2))) -> dfI.desc
+dfI.desc %>% View()
+dfI.desc
+```
