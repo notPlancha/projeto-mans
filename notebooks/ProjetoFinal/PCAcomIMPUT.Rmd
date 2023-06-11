@@ -15,7 +15,7 @@ pacman::p_load(
                "sjstats", "plotrix", "skimr", "viridis",
                "txtplot", "cluster", "tidyverse", "RColorBrewer",
                "caret", "factoextra", "mclust", "htmlTable",
-               "readr", "naniar", "here", "modeest",
+               "readr", "naniar", "here", "modeest", "GPArotation",
                "psych", "corrplot", "haven", "kableExtra",
                "haven", "dplyr" , "magrittr", "mice"
                )
@@ -27,6 +27,22 @@ options(repr.plot.width=6, repr.plot.height=6)
 ```{r}
 IrlandaImput <- read_rds("IrlandaImput.rds")
 ```
+
+### Visualização de estatísticas
+
+```{r}
+my_skim <- skim_with(numeric = sfl("SEM" = plotrix::std.error,
+                                   "CV" = sjstats::cv,
+                                   "Mode" = ~ modeest::mlv1(., na.rm = T, method = "mfv"),
+                                   "sk" = ~ PerformanceAnalytics::skewness(.,na.rm=T,method = "sample"),
+                                   "ku" = ~ PerformanceAnalytics::kurtosis(., na.rm = T, method = "sample_excess")),
+                     append = T)
+
+IrlandaImput[, sapply(IrlandaImput, is.numeric)] %>%
+  my_skim() %>%
+  knitr::kable(digits=2, caption = 'Descriptives with histogram', col.names = c("Scale of Measurement","Item","$N_{missing}$","Complete prop.", "$M$","$SD$","$Min$","$P_{25}$", "$Mdn$","$P_{75}$", "$Max$", "Histogram","$SEM$", "$CV$","$Mode$", "$sk$","$ku$"), )
+```
+
 
 
 # Tratamento dos dados
@@ -50,7 +66,8 @@ colnames(IrlandaImput)
 # Por algum motivo, a variável GRADE faz com que o teste KMO dê erro
 # Aqui serão apagadas todas as variáveis que, ou podem ser substituidas, ou não tem valor nenhum
 
-Apagar <- c("HISCED", "MISCED", "GRADE", "REPEAT", "ATTLNACT", "FISCED", "DISCLIMA", "IMMIG", "ICTSCH", "JOYREADP", "HISEI")
+Apagar <- c("GRADE", "JOYREADP", "PRESUPP", "PQSCHOOL", "EMOSUPP", "CURSUPP", "INFOJOB2", "ICTOUTSIDE", "ICTCLASS", "INTICT", "ENTUSE", "ATTLNACT", "DISCLIMA", "ICTSCH", "ICTSCH", "REPEAT", "IMMIG", "FISCED", "MISCED", "PASCHPOL", "COMPETE", "SMINS", "ST061Q01NA", "ST060Q01NA", "ST059Q03TA", "PERCOMP", "CHANGE", "SCCHANGE", "BFMJ2", "BMMJ1")
+
 IrlandaImput <- IrlandaImput[, -which(names(IrlandaImput) %in% Apagar)]
 ```
 
@@ -73,7 +90,7 @@ Vamos então visualizar as variáveis que não são adequadas para aplica o PCA
 
 ```{r}
 # Obtém as variáveis com KMO abaixo de 0.5
-MelhorKMO <- names(kmo_result$MSAi)[kmo_result$MSAi > 0.6]
+MelhorKMO <- names(kmo_result$MSAi)[kmo_result$MSAi > 0.5]
 IrlandaImput <- IrlandaImput[, which(names(IrlandaImput) %in% MelhorKMO)]
 ```
 
@@ -139,19 +156,21 @@ pc1 <- principal(data_scaled, nfactors=10, rotate="none")
 valores <- round(pc1$values,3)
 valores
 ```
-Visualizando os valores acima, podemos então concluir que ```{r} length(valores[valores > 1]) ```
+Visualizando os valores acima, podemos então concluir que existem ```{r} length(valores[valores > 1]) ``` PCA's recomendados, pois, possuem um valor superior a 1. Para uma melhor escolha de PCA's, iremos visualizar os valores do gráfico, a fim de escolher o melhor número de PCA's possivel.
 
 ```{r}
 length(valores[valores > 1])
 ```
 
-
 ```{r}
 plot(pc1$values, type = "b", main = "Scree plot for Irland dataset", 
      xlab = "Number of PC", ylab = "Eigenvalue")
 ```
+Analisando o gráfico com atenção, é possível visualizar que existem várias quedas brutas, devido a isso, serão realizados vários testes com diferentes valores.
 
-De seguida, iremos analisar ambos os valores, mas é necessário ter em conta o seguinte, para uma melhor interpretação dos resultados:
+## PCA
+
+Para uma melhor análise, é necessário ter conhecimento de algumas componentes e, para tal, de seguida teremos cada uma explicada de forma simples:
 
 > SS loadings: Representa a soma dos quadrados das cargas dos componentes principais. Quanto maior o valor, mais bem os componentes capturam a variabilidade dos dados.
 
@@ -159,30 +178,63 @@ De seguida, iremos analisar ambos os valores, mas é necessário ter em conta o 
 
 > Cumulative Var: Representa a variância cumulativa explicada pelos componentes principais até o componente atual. É a soma acumulada das proporções de variância. Quanto maior o valor, mais bem os componentes principais explicam a variabilidade total dos dados à medida que adicionam-se mais componentes.
 
-## Experiência com ```{r} length(valores[valores > 1]) ```
+### Experiência com 6
 
 ```{r}
-pc12 <- principal(data_scaled, nfactors = 12, rotate = "none")
+pc12 <- principal(data_scaled, nfactors = 6, rotate = "none")
 pc12$loadings
 round(pc12$communality,2)
 ```
 
 ```{r}
-pc12r <- principal(data_scaled, nfactors= 12, rotate="varimax")
+# interessante
+pc12r <- principal(data_scaled, nfactors= 6, rotate="varimax")
 pc12r$loadings
 round(pc12r$communality,2)
 ```
-
+RC1 - Empenho do aluno:
+  - Boas Notas
+  - Conhecimento tecnológico
+  - Não usa muitas tecnologias, pois, na irlanda não existe um grande intensivo em relação ao uso de tecnologias de forma académica.
+  ![Uso de ITC](ITC.png)
+  -
 ```{r}
-# RC1 - Psicólogo do estudante
-# RC4 - Dedicação do estudante
-# RC2 - Notas/ Dificuldades dos estudantes
-# RC3 - Preocupação com o mercado de trabalho
-# RC7 - Suporte que o estudante recebe
+
 ```
 
 
-## Experiência com 7
+```{r}
+# RC1 - Empenho do aluno (Boas notas)
+```
+
+
+```{r}
+pc12o <- principal(data_scaled, nfactors= 6, rotate="oblimin")
+pc12o$loadings
+round(pc12o$communality,2)
+```
+
+```{r}
+# Ver com atenção
+
+pc12pro <- principal(data_scaled, nfactors= 6, rotate="promax")
+pc12pro$loadings
+round(pc12pro$communality,2)
+```
+
+```{r}
+pc12qua <- principal(data_scaled, nfactors= 6, rotate="quartimin")
+pc12qua$loadings
+round(pc12qua$communality,2)
+```
+
+```{r}
+pc12equ <- principal(data_scaled, nfactors= 6, rotate="equamax")
+pc12equ$loadings
+round(pc12equ$communality,2)
+```
+
+### Experiência com 7
 
 ```{r}
 pc7 <- principal(data_scaled, nfactors = 7, rotate = "none")
@@ -191,19 +243,43 @@ round(pc7$communality,2)
 ```
 
 ```{r}
+# interessante
 pc7r <- principal(data_scaled, nfactors= 7, rotate="varimax")
 pc7r$loadings
 round(pc7r$communality,2)
 ```
 
 ```{r}
-# RC1 - Vida Social do Aluno
-# RC2 - Competências académicas do estudante
-# RC3 - Informação que o estudante possui
-# RC4 - Motivação do estudante
-# RC5 - Condições socioeconomicas do estudante
+
 ```
 
+```{r}
+pc7o <- principal(data_scaled, nfactors= 7, rotate="oblimin")
+pc7o$loadings
+round(pc7o$communality,2)
+```
+
+```{r}
+# Ver com atenção
+
+pc7pro <- principal(data_scaled, nfactors= 7, rotate="promax")
+pc7pro$loadings
+round(pc7pro$communality,2)
+```
+
+```{r}
+pc7qua <- principal(data_scaled, nfactors= 7, rotate="quartimin")
+pc7qua$loadings
+round(pc7qua$communality,2)
+```
+
+```{r}
+pc7equ <- principal(data_scaled, nfactors= 7, rotate="equamax")
+pc7equ$loadings
+round(pc12equ$communality,2)
+```
+
+- - -
 ```{r}
 pc7sc <- principal(data_scaled, nfactors = 13, rotate = "varimax", scores = TRUE)
 round(pc7sc$scores,3)

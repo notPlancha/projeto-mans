@@ -58,7 +58,7 @@ dim(Irlanda)
 nulos_percent <- Irlanda %>%
   summarise_all(~ mean(is.na(.)) * 100)
 
-colunas_com_nulos <- colnames(nulos_percent)[nulos_percent > 15]
+colunas_com_nulos <- colnames(nulos_percent)[nulos_percent > 20]
 colunas_com_nulos
 ```
 
@@ -95,8 +95,7 @@ Irlanda <- Irlanda %>% select_if(is.numeric)
 ```
 ## Características da Irlanda
 
-```{r, results='hide'}
-
+```{r}
 my_skim <- skim_with(numeric = sfl("SEM" = plotrix::std.error,
                                    "CV" = sjstats::cv,
                                    "Mode" = ~ modeest::mlv1(., na.rm = T, method = "mfv"),
@@ -104,12 +103,9 @@ my_skim <- skim_with(numeric = sfl("SEM" = plotrix::std.error,
                                    "ku" = ~ PerformanceAnalytics::kurtosis(., na.rm = T, method = "sample_excess")),
                      append = T)
 
-x <-Irlanda[, sapply(Irlanda, is.numeric)] %>%
+Irlanda[, sapply(Irlanda, is.numeric)] %>%
   my_skim() %>%
   knitr::kable(digits=2, caption = 'Descriptives with histogram', col.names = c("Scale of Measurement","Item","$N_{missing}$","Complete prop.", "$M$","$SD$","$Min$","$P_{25}$", "$Mdn$","$P_{75}$", "$Max$", "Histogram","$SEM$", "$CV$","$Mode$", "$sk$","$ku$"), )
-
-tabela_html <- htmlTable(x, align = "c", caption = 'Descriptives with histogram')
-tabela_html
 ```
 
 ### Extra
