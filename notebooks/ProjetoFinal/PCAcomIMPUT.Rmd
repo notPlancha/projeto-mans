@@ -12,8 +12,8 @@ output:
 
 ```{r}
 pacman::p_load(
-               "sjstats", "plotrix", "skimr", 
-               "txtplot", "cluster", "tidyverse",
+               "sjstats", "plotrix", "skimr", "viridis",
+               "txtplot", "cluster", "tidyverse", "RColorBrewer",
                "caret", "factoextra", "mclust", "htmlTable",
                "readr", "naniar", "here", "modeest",
                "psych", "corrplot", "haven", "kableExtra",
@@ -58,10 +58,6 @@ IrlandaImput <- IrlandaImput[, -which(names(IrlandaImput) %in% Apagar)]
 ## Correlações das colunas
 ```{r, results='hide'}
 CorrIrlandaImput <- cor(IrlandaImput)
-corrplot(CorrIrlandaImput)
-
-#IrlandaImput matrix
-round(CorrIrlandaImput, 3)
 ```
 
 ## KMO measure
@@ -80,6 +76,16 @@ Vamos então visualizar as variáveis que não são adequadas para aplica o PCA
 MelhorKMO <- names(kmo_result$MSAi)[kmo_result$MSAi > 0.6]
 IrlandaImput <- IrlandaImput[, which(names(IrlandaImput) %in% MelhorKMO)]
 ```
+
+```{r}
+correlation <- cor(IrlandaImput)
+
+corrplot(correlation,
+         type = "upper",
+         tl.cex = 0.6,
+         addshade = "positive") # show only upper part
+```
+
 
 ## Teste de esfericidade de Bartlett em uma matriz de correlação.
 
@@ -156,14 +162,14 @@ De seguida, iremos analisar ambos os valores, mas é necessário ter em conta o 
 ## Experiência com ```{r} length(valores[valores > 1]) ```
 
 ```{r}
-pc11 <- principal(data_scaled, nfactors = 12, rotate = "none")
-pc11$loadings
-round(pc11$communality,2)
+pc12 <- principal(data_scaled, nfactors = 12, rotate = "none")
+pc12$loadings
+round(pc12$communality,2)
 ```
 
 ```{r}
-pc11r <- principal(data_scaled, nfactors= 12, rotate="varimax")
-pc11r$loadings
+pc12r <- principal(data_scaled, nfactors= 12, rotate="varimax")
+pc12r$loadings
 round(pc12r$communality,2)
 ```
 
@@ -181,13 +187,13 @@ round(pc12r$communality,2)
 ```{r}
 pc7 <- principal(data_scaled, nfactors = 7, rotate = "none")
 pc7$loadings
-round(pc12$communality,2)
+round(pc7$communality,2)
 ```
 
 ```{r}
 pc7r <- principal(data_scaled, nfactors= 7, rotate="varimax")
 pc7r$loadings
-round(pc12r$communality,2)
+round(pc7r$communality,2)
 ```
 
 ```{r}
@@ -237,8 +243,8 @@ pc_dist <- dist(IrlandaImput[,44:48])
 hclust  <- hclust(pc_dist, method='ward.D2')
 plot(hclust, hang=-1, labels=FALSE)
 
-groups.k5 <- cutree(hclust, k=3)
-rect.hclust(hclust, k=3, border="red")
+groups.k5 <- cutree(hclust, k = 3)
+rect.hclust(hclust, k = 3, border="red")
 ```
 
 ```{r}
@@ -292,3 +298,52 @@ barplot(colMeans(subset(IrlandaImput,cluster==3)[,44:48]),main= "Cluster 3 - Ave
 barplot(colMeans(subset(IrlandaImput,cluster==4)[,44:48]),main= "Cluster 4 - Average score in each principal component")
 # barplot(colMeans(subset(IrlandaImput,cluster==5)[,44:48]),main= "Cluster 4 - Average score in each principal component")
 ```
+
+```{r}
+std_data <- scale(IrlandaImput[,44:48])
+pam.k4 <- pam(std_data, 4)
+```
+
+```{r}
+table(groups.k5,pam.k4$clustering)
+```
+
+```{r}
+clusplot(pam.k4, labels = 4, col.p = pam.k4$clustering)
+```
+
+```{r}
+data <- IrlandaImput[,44:48]
+
+BIC <- mclustBIC(data)
+plot(BIC)
+```
+
+```{r}
+### GMM
+set.seed(1233)
+
+# Apply GMM with 5 components
+results.G6 <- Mclust(data, G = 5)
+summary(results.G6, parameters = TRUE)
+```
+
+```{r}
+# Some results
+results.G6$modelName          # Optimal selected model
+results.G6$G                  # Optimal number of cluster
+head(results.G6$z, 5)         # Probability to belong to a given cluster
+head(results.G6$classification, 5) # Cluster assignment of each observation
+```
+
+```{r}
+# select VEV, different volume, equal shape, different directions
+plot(results.G6, what = "classification")
+```
+```{r}
+plot(results.G6, what = "uncertainty")
+```
+
+
+
+
