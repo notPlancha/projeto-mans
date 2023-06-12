@@ -63,7 +63,7 @@ colnames(IrlandaImput)
 
 
 ```{r}
-# Por algum motivo, a variável GRADE faz com que o teste KMO dê erro
+# A variável GRADE faz com que o teste KMO dê erro (não se sabe)
 # Aqui serão apagadas todas as variáveis que, ou podem ser substituidas, ou não tem valor nenhum
 
 Apagar <- c("GRADE", "JOYREADP", "PRESUPP", "PQSCHOOL", "EMOSUPP", "CURSUPP", "INFOJOB2", "ICTOUTSIDE", "ICTCLASS", "INTICT", "ENTUSE", "ATTLNACT", "DISCLIMA", "ICTSCH", "ICTSCH", "REPEAT", "IMMIG", "FISCED", "MISCED", "PASCHPOL", "COMPETE", "SMINS", "ST061Q01NA", "ST060Q01NA", "ST059Q03TA", "PERCOMP", "CHANGE", "SCCHANGE", "BFMJ2", "BMMJ1")
@@ -81,6 +81,8 @@ CorrIrlandaImput <- cor(IrlandaImput)
 ```{r}
 kmo_result <- KMO(IrlandaImput)
 kmo_result
+
+# Neste output o LMINS, o MMINS, o ST059Q02TA, o ST059Q01TA, o HISEI e o HISCED tem valores abaixo de 0.6 (0.27, 0.23, 0.22, 0.25, 0.42, 0.39, respetivamente). É chill ou é para retirar estas variáveis também?
 ```
 O KMO (Kaiser-Meyer-Olkin) é uma medida estatística utilizada para avaliar a adequação dos dados para realizar uma análise de fator ou análise de componentes principais (PCA).
 O valor do KMO varia de 0 a 1 e, quanto mais próximo de 1, melhor a adequação dos dados para uma análise de fator ou PCA. Valores de KMO acima de 0,6 são geralmente considerados adequados para análises exploratórias, enquanto valores acima de 0,8 são considerados muito bons.
@@ -118,6 +120,8 @@ Se o valor-p (p-value) calculado no teste de esfericidade de Bartlett for menor 
 ```{r}
 data_scaled <- scale(IrlandaImput)
 data_scaled %>% glimpse()
+
+# Dúvida: Estandardizamos os dados de variáveis que não têm distribuição normal?
 ```
 
 # PCA
@@ -156,14 +160,14 @@ pc1 <- principal(data_scaled, nfactors=10, rotate="none")
 valores <- round(pc1$values,3)
 valores
 ```
-Visualizando os valores acima, podemos então concluir que existem ```{r} length(valores[valores > 1]) ``` PCA's recomendados, pois, possuem um valor superior a 1. Para uma melhor escolha de PCA's, iremos visualizar os valores do gráfico, a fim de escolher o melhor número de PCA's possivel.
+Visualizando os valores acima, podemos então concluir que existem ```{r} length(valores[valores > 1]) ``` PCA's recomendados, pois, possuem um valor próprio superior a 1. Para uma melhor escolha de PCA's, iremos visualizar os valores do gráfico, a fim de escolher o melhor número de PCA's possivel.
 
 ```{r}
 length(valores[valores > 1])
 ```
 
 ```{r}
-plot(pc1$values, type = "b", main = "Scree plot for Irland dataset", 
+plot(pc1$values, type = "b", main = "Scree plot for Ireland dataset", 
      xlab = "Number of PC", ylab = "Eigenvalue")
 ```
 Analisando o gráfico com atenção, é possível visualizar que existem várias quedas brutas, devido a isso, serão realizados vários testes com diferentes valores.
@@ -192,21 +196,23 @@ pc12r <- principal(data_scaled, nfactors= 6, rotate="varimax")
 pc12r$loadings
 round(pc12r$communality,2)
 ```
-RC1 - Empenho do aluno:
-  - Boas Notas
-  - Conhecimento tecnológico
-  - Não usa muitas tecnologias, pois, na irlanda não existe um grande intensivo em relação ao uso de tecnologias de forma académica.
-  ![Uso de ITC](ITC.png)
-  -
-```{r}
+### RC2 - Resultados escolares
+- Esta componente principal tem em conta os resultados da avaliação do estudante nos três campos de conhecimento (ciências, leitura e matemática) bem como a dificuldade percepcionada pelo mesmo e, também, a sua percepção quer sobre dificuldade do teste, quer sobre a sua competência.
 
-```
+### RC3 - Estatuto socio-económico
+- Esta componente principal tem em com conta as posses do estudante em casa bem como o seu estatuto económico, social e cultural. Esta componente principal também tem em atenção os recursos que o estudante tem quer em casa, quer no que diz respeito a ICT por si só.
 
+### RC1 - Alegria e bem-estar interior
+- Esta componente principal tem em conta a satisfação do estudante com a sua vida e o significado da mesma para si próprio. Esta componente principal também tem em conta os sentimentos positivos do estudante, sendo estes sentimentos como pertença, conforto com o seu corpo e a sua aparência, ausência de receio de falhar, resiliência e bom relacionamento com os pais.
 
-```{r}
-# RC1 - Empenho do aluno (Boas notas)
-```
+### RC5 - Apoio por parte do professor
+- Esta componente principal tem em conta a percepção do estudante quer no que diz respeito interesse do professor, quer no que diz respeito ao estímulo proveniente do mesmo para que os estudantes leiam. Esta componente principal também tem em conta a adaptabilidade do ensino do professor e apoio deste em aulas sobre línguas.
 
+### RC4 - Nível de educação e informação sobre carreiras
+- Esta componente principal tem em conta o nível de educação do estudante e a informação que este tem sobre carreiras a seguir. No que diz respeito à informação que estudante tem sobre carreiras a seguir tem-se em conta a informação que o mesmo tem em geral e, também, a informação sobre este tema que lhe foi fornecida pela escola.
+
+### RC6 - Manuseamento de ICT
+- Esta componente principal tem em conta o uso de ICT por parte do estudante no que diz respeito a integração social bem como a autonomia do mesmo com estas tecnologias. Esta componente principal também tem em conta a percepção de competência relativamente ao manuseamento de ICT por parte do estudante.
 
 ```{r}
 pc12o <- principal(data_scaled, nfactors= 6, rotate="oblimin")
