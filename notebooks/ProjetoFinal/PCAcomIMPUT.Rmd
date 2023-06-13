@@ -214,6 +214,8 @@ round(pc12r$communality,2)
 ### RC6 - Manuseamento de ICT
 - Esta componente principal tem em conta o uso de ICT por parte do estudante no que diz respeito a integração social bem como a autonomia do mesmo com estas tecnologias. Esta componente principal também tem em conta a percepção de competência relativamente ao manuseamento de ICT por parte do estudante.
 
+> Comparativamente ao ficheiro sem Imputação, o RC5 e o RC1 estão ao contrário
+
 ```{r}
 pc12o <- principal(data_scaled, nfactors= 6, rotate="oblimin")
 pc12o$loadings
@@ -221,8 +223,6 @@ round(pc12o$communality,2)
 ```
 
 ```{r}
-# Ver com atenção
-
 pc12pro <- principal(data_scaled, nfactors= 6, rotate="promax")
 pc12pro$loadings
 round(pc12pro$communality,2)
@@ -249,14 +249,9 @@ round(pc7$communality,2)
 ```
 
 ```{r}
-# interessante
 pc7r <- principal(data_scaled, nfactors= 7, rotate="varimax")
 pc7r$loadings
 round(pc7r$communality,2)
-```
-
-```{r}
-
 ```
 
 ```{r}
@@ -287,19 +282,20 @@ round(pc12equ$communality,2)
 
 - - -
 ```{r}
-pc7sc <- principal(data_scaled, nfactors = 13, rotate = "varimax", scores = TRUE)
-round(pc7sc$scores,3)
+pc6sc <- principal(data_scaled, nfactors = 6, rotate = "varimax", scores = TRUE)
+round(pc6sc$scores,3)
 
-mean(pc7sc$scores[,1])
-sd(pc7sc$scores[,1])
+mean(pc6sc$scores[,1])
+sd(pc6sc$scores[,1])
 ```
 
 ```{r}
-IrlandaImput$SociaLife <- pc7sc$scores[,2]
-IrlandaImput$Knowledge <- pc7sc$scores[,3]
-IrlandaImput$Information <- pc7sc$scores[,4]
-IrlandaImput$Motivation <- pc7sc$scores[,1]
-IrlandaImput$socioeconomic <- pc7sc$scores[,6]
+IrlandaImput$Intelligence <- pc6sc$scores[,1] # RC2
+IrlandaImput$Socioeconomic <- pc6sc$scores[,2] # RC3
+IrlandaImput$Hapiness <- pc6sc$scores[,3] # RC1
+IrlandaImput$SchoolSupport <- pc6sc$scores[,4] # RC5
+IrlandaImput$CareerAwareness <- pc6sc$scores[,5] # RC4
+IrlandaImput$ICTKnowledge <- pc6sc$scores[,6] # RC6
 ```
 
 ```{r}
@@ -307,11 +303,11 @@ dim(IrlandaImput)
 ```
 
 ```{r}
-IrlandaImput[,44:48]
+IrlandaImput[,43:47]
 ```
 
 ```{r}
-corr <- cor(IrlandaImput[,44:48])
+corr <- cor(IrlandaImput[,43:47])
 par(oma = c(2, 2, 2, 2))   # space rounf the graph
 corrplot.mixed(corr,
         order = "hclust",
@@ -321,12 +317,12 @@ corrplot.mixed(corr,
 
 
 ```{r}
-pc_dist <- dist(IrlandaImput[,44:48])
+pc_dist <- dist(IrlandaImput[,43:47])
 hclust  <- hclust(pc_dist, method='ward.D2')
 plot(hclust, hang=-1, labels=FALSE)
 
-groups.k5 <- cutree(hclust, k = 3)
-rect.hclust(hclust, k = 3, border="red")
+groups.k5 <- cutree(hclust, k = 4)
+rect.hclust(hclust, k = 4, border="red")
 ```
 
 ```{r}
@@ -334,12 +330,12 @@ plot(silhouette(groups.k5, pc_dist))
 ```
 
 ```{r}
-pc_dist <- dist(IrlandaImput[,44:48])
+pc_dist <- dist(IrlandaImput[,43:47])
 hclust  <- hclust(pc_dist, method='complete')
 plot(hclust, hang=-1, labels=FALSE)
 
-groups.k5_c <- cutree(hclust, k=3)
-rect.hclust(hclust, k=3, border="red")
+groups.k5_c <- cutree(hclust, k=4)
+rect.hclust(hclust, k=4, border="red")
 ```
 
 ```{r}
@@ -359,30 +355,31 @@ wssplot <- function(xx, nc=15, seed=1234){
     wss[i] <- sum(kmeans(xx, centers=i)$withinss)}
   plot(1:nc, wss, type="b", xlab="Number of Clusters",
        ylab="Within groups sum of squares")}
-wssplot(IrlandaImput[,44:48], nc=10)
+wssplot(IrlandaImput[,43:47], nc=10)
 ```
 
 ```{r}
-#K-means cluster com K=6
-kmeans.k6 <- kmeans(IrlandaImput[,44:48], 4, nstart=100)
+#K-means cluster com K=4
+kmeans.k6 <- kmeans(IrlandaImput[,43:47], 4, nstart=100)
 IrlandaImput = IrlandaImput %>% mutate(cluster = kmeans.k6$cluster)
 ```
 
 ```{r}
 table(groups.k5, IrlandaImput$cluster)
+# O 2 e o 3 podem estar trocados
 ```
 
 ```{r}
 #Barplot of average score in each principal component within each cluster
-barplot(colMeans(subset(IrlandaImput,cluster==1)[,44:48]),main= "Cluster 1 - Average score in each principal component")
-barplot(colMeans(subset(IrlandaImput,cluster==2)[,44:48]),main= "Cluster 2 - Average score in each principal component")
-barplot(colMeans(subset(IrlandaImput,cluster==3)[,44:48]),main= "Cluster 3 - Average score in each principal component")
-barplot(colMeans(subset(IrlandaImput,cluster==4)[,44:48]),main= "Cluster 4 - Average score in each principal component")
+barplot(colMeans(subset(IrlandaImput,cluster==1)[,43:47]),main= "Cluster 1 - Average score in each principal component")
+barplot(colMeans(subset(IrlandaImput,cluster==2)[,43:47]),main= "Cluster 2 - Average score in each principal component")
+barplot(colMeans(subset(IrlandaImput,cluster==3)[,43:47]),main= "Cluster 3 - Average score in each principal component")
+barplot(colMeans(subset(IrlandaImput,cluster==4)[,43:47]),main= "Cluster 4 - Average score in each principal component")
 # barplot(colMeans(subset(IrlandaImput,cluster==5)[,44:48]),main= "Cluster 4 - Average score in each principal component")
 ```
 
 ```{r}
-std_data <- scale(IrlandaImput[,44:48])
+std_data <- scale(IrlandaImput[,43:47])
 pam.k4 <- pam(std_data, 4)
 ```
 
@@ -395,7 +392,7 @@ clusplot(pam.k4, labels = 4, col.p = pam.k4$clustering)
 ```
 
 ```{r}
-data <- IrlandaImput[,44:48]
+data <- IrlandaImput[,43:47]
 
 BIC <- mclustBIC(data)
 plot(BIC)
@@ -406,7 +403,7 @@ plot(BIC)
 set.seed(1233)
 
 # Apply GMM with 5 components
-results.G6 <- Mclust(data, G = 5)
+results.G6 <- Mclust(data, G = 4)
 summary(results.G6, parameters = TRUE)
 ```
 
@@ -419,13 +416,10 @@ head(results.G6$classification, 5) # Cluster assignment of each observation
 ```
 
 ```{r}
-# select VEV, different volume, equal shape, different directions
+# select VVE -> Variable Volume, Variable shape, equal directions
 plot(results.G6, what = "classification")
 ```
+
 ```{r}
 plot(results.G6, what = "uncertainty")
 ```
-
-
-
-
