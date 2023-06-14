@@ -58,7 +58,7 @@ dim(Irlanda)
 nulos_percent <- Irlanda %>%
   summarise_all(~ mean(is.na(.)) * 100)
 
-colunas_com_nulos <- colnames(nulos_percent)[nulos_percent > 20]
+colunas_com_nulos <- colnames(nulos_percent)[nulos_percent > 10]
 colunas_com_nulos
 ```
 
