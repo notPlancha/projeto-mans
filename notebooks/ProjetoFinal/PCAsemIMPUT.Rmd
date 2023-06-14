@@ -203,23 +203,24 @@ pc12r <- principal(data_scaled, nfactors= 6, rotate="varimax")
 pc12r$loadings
 round(pc12r$communality,2)
 ```
-### RC1 - Resultados escolares
+### RC1 - Sucesso Académico (SA)
 - Esta componente principal tem em conta os resultados da avaliação do estudante nos três campos de conhecimento (ciências, leitura e matemática) bem como a dificuldade percepcionada pelo mesmo e, também, a sua percepção quer sobre dificuldade do teste, quer sobre a sua competência.
 
-### RC3 - Estatuto socio-económico
+### RC3 - Estatuto socio-económico (ESE)
 - Esta componente principal tem em com conta as posses do estudante em casa bem como o seu estatuto económico, social e cultural. Esta componente principal também tem em atenção os recursos que o estudante tem quer em casa, quer no que diz respeito a ICT por si só.
 
-### RC4 - Alegria e bem-estar interior
-- Esta componente principal tem em conta a satisfação do estudante com a sua vida e o significado da mesma para si próprio. Esta componente principal também tem em conta os sentimentos positivos do estudante, sendo estes sentimentos como pertença, conforto com o seu corpo e a sua aparência, ausência de receio de falhar, resiliência e bom relacionamento com os pais.
-
-### RC2 - Apoio por parte do professor
+### RC2 - Apoio por parte do professor (APP)
 - Esta componente principal tem em conta a percepção do estudante quer no que diz respeito interesse do professor, quer no que diz respeito ao estímulo proveniente do mesmo para que os estudantes leiam. Esta componente principal também tem em conta a adaptabilidade do ensino do professor e apoio deste em aulas sobre línguas.
 
-### RC5 - Nível de educação e informação sobre carreiras
+### RC4 - Alegria e bem-estar interior (ABEI)
+- Esta componente principal tem em conta a satisfação do estudante com a sua vida e o significado da mesma para si próprio. Esta componente principal também tem em conta os sentimentos positivos do estudante, sendo estes sentimentos como pertença, conforto com o seu corpo e a sua aparência, ausência de receio de falhar, resiliência e bom relacionamento com os pais.
+
+
+### RC5 - Nível de educação e informação sobre carreiras (NEIC)
 - Esta componente principal tem em conta o nível de educação do estudante e a informação que este tem sobre carreiras a seguir. No que diz respeito à informação que estudante tem sobre carreiras a seguir tem-se em conta a informação que o mesmo tem em geral e, também, a informação sobre este tema que lhe foi fornecida pela escola.
 
-### RC6 - Mudanças
-- Explicar
+### RC6 - Mudança de escola (ME)
+- Esta componente principal tem em conta o total de vezes que o estudante mudou de escola.
 
 
 ```{r}
@@ -294,12 +295,12 @@ sd(pc6sc$scores[,1])
 ```
 
 ```{r}
-IrlandaNoImput$Intelligence <- pc6sc$scores[,1] # RC1 - Resultados escolares
-IrlandaNoImput$Socioeconomic <- pc6sc$scores[,2] # RC3 - Estatuto socio-económico
-IrlandaNoImput$SchoolSupport <- pc6sc$scores[,3] # RC2 - Apoio por parte do professor
-IrlandaNoImput$Hapiness <- pc6sc$scores[,4] # RC4 - Alegria e bem-estar interior
-IrlandaNoImput$CareerAwareness <- pc6sc$scores[,5] # RC5 - Nível de educação e informação sobre carreiras
-IrlandaNoImput$Changes <- pc6sc$scores[,6] # RC6 - Mudanças
+IrlandaNoImput$SA <- pc6sc$scores[,1] # RC1 - Sucesso Académico
+IrlandaNoImput$ESE <- pc6sc$scores[,2] # RC3 - Estatuto socio-económico
+IrlandaNoImput$APP <- pc6sc$scores[,3] # RC2 - Apoio por parte do professor
+IrlandaNoImput$ABEI <- pc6sc$scores[,4] # RC4 - Alegria e bem-estar interior
+IrlandaNoImput$NEIC <- pc6sc$scores[,5] # RC5 - Nível de educação e informação sobre carreiras
+IrlandaNoImput$ME <- pc6sc$scores[,6] # RC6 - Mudança de escola
 ```
 
 ```{r}
@@ -315,16 +316,10 @@ IrlandaNoImput[, 37:42]
 IrlandaFinal<- IrlandaNoImputInc %>% select("ST004D01T", "AGE", "IMMIG", "HISCED", "FISCED", "MISCED", "ISCEDL")
 IrlandaFinal <- IrlandaFinal %>% 
   bind_cols(IrlandaNoImput[, 37:42])
-
 ```
 
 ```{r}
 IrlandaFinal
-```
-
-
-```{r}
-IrlandaFinal[8:12]
 ```
 
 ```{r}
