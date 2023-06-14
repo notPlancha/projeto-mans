@@ -25,7 +25,17 @@ options(repr.plot.width=6, repr.plot.height=6)
 ## Leitura dos dados
 
 ```{r}
-IrlandaImput <- read_rds("IrlandaImput.rds")
+IrlandaImputInc <- read_rds("IrlandaImput.rds")
+```
+
+### Retirar as variáveis de perfil e irrelevantes
+
+Sabendo que o objetivo é criar PCA's, iremos já retirar os dados de perfil para não induzir o PCA em erro
+
+```{r}
+# Dúvidas em relação às seguintes variáveis: ISCEDL, IMMIG, REPEAT
+Perfil <- c("ST004D01T", "AGE", "IMMIG", "HISCED", "FISCED", "MISCED", "ISCEDL")
+IrlandaImput <- IrlandaImputInc[, -which(names(IrlandaImputInc) %in% Perfil)]
 ```
 
 ### Visualização de estatísticas
@@ -61,12 +71,12 @@ Devido ao elevado número de colunas, iremos primeiramente eliminar algumas colu
 colnames(IrlandaImput)
 ```
 
-
 ```{r}
-# A variável GRADE faz com que o teste KMO dê erro (não se sabe)
+# A variável GRADE faz com que o teste KMO dê erro (variável muito desiquilibrada)
 # Aqui serão apagadas todas as variáveis que, ou podem ser substituidas, ou não tem valor nenhum
-
-Apagar <- c("GRADE", "JOYREADP", "PRESUPP", "PQSCHOOL", "EMOSUPP", "CURSUPP", "INFOJOB2", "ICTOUTSIDE", "ICTCLASS", "INTICT", "ENTUSE", "ATTLNACT", "DISCLIMA", "ICTSCH", "ICTSCH", "REPEAT", "IMMIG", "FISCED", "MISCED", "PASCHPOL", "COMPETE", "SMINS", "ST061Q01NA", "ST060Q01NA", "ST059Q03TA", "PERCOMP", "CHANGE", "SCCHANGE", "BFMJ2", "BMMJ1")
+Apagar <- c("GRADE", "JOYREADP", "PRESUPP", "PASCHPOL", "PQSCHOOL", "EMOSUPP", "CURSUPP", "INFOJOB2", "ICTOUTSIDE",
+            "ICTCLASS", "COMPETE", "ATTLNACT", "PERCOMP", "DISCLIMA", "ICTSCH", "CHANGE", "SCCHANGE", 
+            "LMINS", "ST061Q01NA", "ST060Q01NA", "REPEAT", "ST059Q01TA", "BFMJ2", "BMMJ1")
 
 IrlandaImput <- IrlandaImput[, -which(names(IrlandaImput) %in% Apagar)]
 ```
@@ -81,8 +91,6 @@ CorrIrlandaImput <- cor(IrlandaImput)
 ```{r}
 kmo_result <- KMO(IrlandaImput)
 kmo_result
-
-# Neste output o LMINS, o MMINS, o ST059Q02TA, o ST059Q01TA, o HISEI e o HISCED tem valores abaixo de 0.6 (0.27, 0.23, 0.22, 0.25, 0.42, 0.39, respetivamente). É chill ou é para retirar estas variáveis também?
 ```
 O KMO (Kaiser-Meyer-Olkin) é uma medida estatística utilizada para avaliar a adequação dos dados para realizar uma análise de fator ou análise de componentes principais (PCA).
 O valor do KMO varia de 0 a 1 e, quanto mais próximo de 1, melhor a adequação dos dados para uma análise de fator ou PCA. Valores de KMO acima de 0,6 são geralmente considerados adequados para análises exploratórias, enquanto valores acima de 0,8 são considerados muito bons.
@@ -101,7 +109,7 @@ correlation <- cor(IrlandaImput)
 
 corrplot(correlation,
          type = "upper",
-         tl.cex = 0.6,
+         tl.cex = 0.55,
          addshade = "positive") # show only upper part
 ```
 
@@ -151,7 +159,7 @@ dim(data_scaled)
 ```
 
 ```{r}
-pc1 <- principal(data_scaled, nfactors=10, rotate="none")
+pc1 <- principal(data_scaled, nfactors=20, rotate="none")
 ```
 
 ### Kaiser Criterion
@@ -196,25 +204,25 @@ pc12r <- principal(data_scaled, nfactors= 6, rotate="varimax")
 pc12r$loadings
 round(pc12r$communality,2)
 ```
-### RC2 - Resultados escolares
+### RC1 - Resultados escolares
 - Esta componente principal tem em conta os resultados da avaliação do estudante nos três campos de conhecimento (ciências, leitura e matemática) bem como a dificuldade percepcionada pelo mesmo e, também, a sua percepção quer sobre dificuldade do teste, quer sobre a sua competência.
 
 ### RC3 - Estatuto socio-económico
 - Esta componente principal tem em com conta as posses do estudante em casa bem como o seu estatuto económico, social e cultural. Esta componente principal também tem em atenção os recursos que o estudante tem quer em casa, quer no que diz respeito a ICT por si só.
 
-### RC1 - Alegria e bem-estar interior
+### RC2 - Alegria e bem-estar interior
 - Esta componente principal tem em conta a satisfação do estudante com a sua vida e o significado da mesma para si próprio. Esta componente principal também tem em conta os sentimentos positivos do estudante, sendo estes sentimentos como pertença, conforto com o seu corpo e a sua aparência, ausência de receio de falhar, resiliência e bom relacionamento com os pais.
 
 ### RC5 - Apoio por parte do professor
 - Esta componente principal tem em conta a percepção do estudante quer no que diz respeito interesse do professor, quer no que diz respeito ao estímulo proveniente do mesmo para que os estudantes leiam. Esta componente principal também tem em conta a adaptabilidade do ensino do professor e apoio deste em aulas sobre línguas.
 
-### RC4 - Nível de educação e informação sobre carreiras
+### RC6 - Nível de educação e informação sobre carreiras
 - Esta componente principal tem em conta o nível de educação do estudante e a informação que este tem sobre carreiras a seguir. No que diz respeito à informação que estudante tem sobre carreiras a seguir tem-se em conta a informação que o mesmo tem em geral e, também, a informação sobre este tema que lhe foi fornecida pela escola.
 
-### RC6 - Manuseamento de ICT
+### RC5 - Manuseamento de ICT
 - Esta componente principal tem em conta o uso de ICT por parte do estudante no que diz respeito a integração social bem como a autonomia do mesmo com estas tecnologias. Esta componente principal também tem em conta a percepção de competência relativamente ao manuseamento de ICT por parte do estudante.
 
-> Comparativamente ao ficheiro sem Imputação, o RC5 e o RC1 estão ao contrário
+> Comparativamente ao ficheiro com Imputação, o RC5 e o RC1 estão ao contrário
 
 ```{r}
 pc12o <- principal(data_scaled, nfactors= 6, rotate="oblimin")
@@ -261,8 +269,6 @@ round(pc7o$communality,2)
 ```
 
 ```{r}
-# Ver com atenção
-
 pc7pro <- principal(data_scaled, nfactors= 7, rotate="promax")
 pc7pro$loadings
 round(pc7pro$communality,2)
@@ -290,12 +296,12 @@ sd(pc6sc$scores[,1])
 ```
 
 ```{r}
-IrlandaImput$Intelligence <- pc6sc$scores[,1] # RC2
-IrlandaImput$Socioeconomic <- pc6sc$scores[,2] # RC3
-IrlandaImput$Hapiness <- pc6sc$scores[,3] # RC1
-IrlandaImput$SchoolSupport <- pc6sc$scores[,4] # RC5
-IrlandaImput$CareerAwareness <- pc6sc$scores[,5] # RC4
-IrlandaImput$ICTKnowledge <- pc6sc$scores[,6] # RC6
+IrlandaImput$Intelligence <- pc6sc$scores[,1] # RC1 - Resultados escolares
+IrlandaImput$Socioeconomic <- pc6sc$scores[,2] # RC3 - Estatuto socio-económico
+IrlandaImput$SchoolSupport <- pc6sc$scores[,3] # RC2 - Alegria e bem-estar interior
+IrlandaImput$Hapiness <- pc6sc$scores[,4] # RC1 - Apoio por parte do professor
+IrlandaImput$CareerAwareness <- pc6sc$scores[,5] # RC5 - Apoio por parte do professor
+IrlandaImput$ICTKnowledge <- pc6sc$scores[,6] # RC6 - Nível de educação e informação sobre carreiras
 ```
 
 ```{r}
@@ -303,11 +309,28 @@ dim(IrlandaImput)
 ```
 
 ```{r}
-IrlandaImput[,43:47]
+IrlandaImput[, 44:49]
+```
+
+
+```{r}
+IrlandaFinal<- IrlandaImputInc %>% select("ST004D01T", "AGE", "IMMIG", "HISCED", "FISCED", "MISCED", "ISCEDL")
+IrlandaFinal <- IrlandaFinal %>% 
+  bind_cols(IrlandaImput[, 44:49])
+
 ```
 
 ```{r}
-corr <- cor(IrlandaImput[,43:47])
+IrlandaFinal
+```
+
+
+```{r}
+IrlandaFinal[8:12]
+```
+
+```{r}
+corr <- cor(IrlandaImput[, 44:49])
 par(oma = c(2, 2, 2, 2))   # space rounf the graph
 corrplot.mixed(corr,
         order = "hclust",
@@ -315,27 +338,27 @@ corrplot.mixed(corr,
         upper = "ellipse")
 ```
 
-
 ```{r}
-pc_dist <- dist(IrlandaImput[,43:47])
+pc_dist <- dist(IrlandaImput[, 44:49])
 hclust  <- hclust(pc_dist, method='ward.D2')
 plot(hclust, hang=-1, labels=FALSE)
 
-groups.k5 <- cutree(hclust, k = 4)
-rect.hclust(hclust, k = 4, border="red")
+groups.k5 <- cutree(hclust, k = 6)
+rect.hclust(hclust, k = 6, border="red")
 ```
 
 ```{r}
+# 4 ou 5 clusters?
 plot(silhouette(groups.k5, pc_dist))
 ```
 
 ```{r}
-pc_dist <- dist(IrlandaImput[,43:47])
+pc_dist <- dist(IrlandaImput[, 44:49])
 hclust  <- hclust(pc_dist, method='complete')
 plot(hclust, hang=-1, labels=FALSE)
 
-groups.k5_c <- cutree(hclust, k=4)
-rect.hclust(hclust, k=4, border="red")
+groups.k5_c <- cutree(hclust, k=5)
+rect.hclust(hclust, k=5, border="red")
 ```
 
 ```{r}
@@ -355,32 +378,33 @@ wssplot <- function(xx, nc=15, seed=1234){
     wss[i] <- sum(kmeans(xx, centers=i)$withinss)}
   plot(1:nc, wss, type="b", xlab="Number of Clusters",
        ylab="Within groups sum of squares")}
-wssplot(IrlandaImput[,43:47], nc=10)
+wssplot(IrlandaImput[, 44:49], nc=10)
 ```
 
 ```{r}
-#K-means cluster com K=4
-kmeans.k6 <- kmeans(IrlandaImput[,43:47], 4, nstart=100)
+#K-means cluster com K=2
+kmeans.k6 <- kmeans(IrlandaImput[, 44:49], 6, nstart=100)
 IrlandaImput = IrlandaImput %>% mutate(cluster = kmeans.k6$cluster)
 ```
 
 ```{r}
 table(groups.k5, IrlandaImput$cluster)
-# O 2 e o 3 podem estar trocados
 ```
 
 ```{r}
 #Barplot of average score in each principal component within each cluster
-barplot(colMeans(subset(IrlandaImput,cluster==1)[,43:47]),main= "Cluster 1 - Average score in each principal component")
-barplot(colMeans(subset(IrlandaImput,cluster==2)[,43:47]),main= "Cluster 2 - Average score in each principal component")
-barplot(colMeans(subset(IrlandaImput,cluster==3)[,43:47]),main= "Cluster 3 - Average score in each principal component")
-barplot(colMeans(subset(IrlandaImput,cluster==4)[,43:47]),main= "Cluster 4 - Average score in each principal component")
-# barplot(colMeans(subset(IrlandaImput,cluster==5)[,44:48]),main= "Cluster 4 - Average score in each principal component")
+barplot(colMeans(subset(IrlandaImput,cluster==1)[,44:49]),main= "Cluster 1 - Average score in each principal component", cex.names = 0.70)
+barplot(colMeans(subset(IrlandaImput,cluster==2)[,44:49]),main= "Cluster 2 - Average score in each principal component", cex.names = 0.70)
+barplot(colMeans(subset(IrlandaImput,cluster==3)[,44:49]),main= "Cluster 3 - Average score in each principal component", 
+cex.names = 0.70)
+barplot(colMeans(subset(IrlandaImput,cluster==4)[,44:49]),main= "Cluster 4 - Average score in each principal component", cex.names = 0.70)
+barplot(colMeans(subset(IrlandaImput,cluster==5)[,44:49]),main= "Cluster 5 - Average score in each principal component", cex.names = 0.70)
+barplot(colMeans(subset(IrlandaImput,cluster==6)[,44:49]),main= "Cluster 6 - Average score in each principal component", cex.names = 0.70)
 ```
 
 ```{r}
-std_data <- scale(IrlandaImput[,43:47])
-pam.k4 <- pam(std_data, 4)
+std_data <- scale(IrlandaImput[,44:49])
+pam.k4 <- pam(std_data, 6)
 ```
 
 ```{r}
@@ -388,11 +412,11 @@ table(groups.k5,pam.k4$clustering)
 ```
 
 ```{r}
-clusplot(pam.k4, labels = 4, col.p = pam.k4$clustering)
+clusplot(pam.k4, labels = F, col.p = pam.k4$clustering)
 ```
 
 ```{r}
-data <- IrlandaImput[,43:47]
+data <- IrlandaImput[,44:49]
 
 BIC <- mclustBIC(data)
 plot(BIC)
@@ -402,8 +426,8 @@ plot(BIC)
 ### GMM
 set.seed(1233)
 
-# Apply GMM with 5 components
-results.G6 <- Mclust(data, G = 4)
+# Apply GMM with 2 components
+results.G6 <- Mclust(data, G = 5)
 summary(results.G6, parameters = TRUE)
 ```
 
@@ -416,7 +440,7 @@ head(results.G6$classification, 5) # Cluster assignment of each observation
 ```
 
 ```{r}
-# select VVE -> Variable Volume, Variable shape, equal directions
+# select VVI -> Variable Volume, Variable shape, Coordinate axes
 plot(results.G6, what = "classification")
 ```
 

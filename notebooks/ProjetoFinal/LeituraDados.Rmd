@@ -87,12 +87,10 @@ for (i in seq_along(valores_unicos)) {
 ```
 
 ```{r}
-colunas_nao_numericas <- colunas_nao_numericas[-5]
-colunas_nao_numericas
-
 Irlanda[colunas_nao_numericas] <- lapply(Irlanda[colunas_nao_numericas], as.factor)
 Irlanda <- Irlanda %>% select_if(is.numeric)
 ```
+
 ## Características da Irlanda
 
 ```{r}
@@ -106,15 +104,6 @@ my_skim <- skim_with(numeric = sfl("SEM" = plotrix::std.error,
 Irlanda[, sapply(Irlanda, is.numeric)] %>%
   my_skim() %>%
   knitr::kable(digits=2, caption = 'Descriptives with histogram', col.names = c("Scale of Measurement","Item","$N_{missing}$","Complete prop.", "$M$","$SD$","$Min$","$P_{25}$", "$Mdn$","$P_{75}$", "$Max$", "Histogram","$SEM$", "$CV$","$Mode$", "$sk$","$ku$"), )
-```
-
-### Extra
-
-Sabendo que o objetivo é criar PCA's, iremos já retirar os dados de perfil
-
-```{r}
-Perfil <- c("ST004D01T", "AGE")
-Irlanda <- Irlanda[, -which(names(Irlanda) %in% Perfil)]
 ```
 
 ## Limpeza dos valores omissos
