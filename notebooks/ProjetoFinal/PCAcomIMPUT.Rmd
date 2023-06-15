@@ -203,23 +203,24 @@ pc12r <- principal(data_scaled, nfactors= 6, rotate="varimax")
 pc12r$loadings
 round(pc12r$communality,2)
 ```
-### RC1 - Resultados escolares
+### RC1 - Sucesso Académico (SA)
 - Esta componente principal tem em conta os resultados da avaliação do estudante nos três campos de conhecimento (ciências, leitura e matemática) bem como a dificuldade percepcionada pelo mesmo e, também, a sua percepção quer sobre dificuldade do teste, quer sobre a sua competência.
 
-### RC3 - Estatuto socio-económico
+### RC3 - Estatuto socio-económico (ESE)
 - Esta componente principal tem em com conta as posses do estudante em casa bem como o seu estatuto económico, social e cultural. Esta componente principal também tem em atenção os recursos que o estudante tem quer em casa, quer no que diz respeito a ICT por si só.
 
-### RC4 - Alegria e bem-estar interior
-- Esta componente principal tem em conta a satisfação do estudante com a sua vida e o significado da mesma para si próprio. Esta componente principal também tem em conta os sentimentos positivos do estudante, sendo estes sentimentos como pertença, conforto com o seu corpo e a sua aparência, ausência de receio de falhar, resiliência e bom relacionamento com os pais.
-
-### RC2 - Apoio por parte do professor
+### RC2 - Apoio por parte do professor (APP)
 - Esta componente principal tem em conta a percepção do estudante quer no que diz respeito interesse do professor, quer no que diz respeito ao estímulo proveniente do mesmo para que os estudantes leiam. Esta componente principal também tem em conta a adaptabilidade do ensino do professor e apoio deste em aulas sobre línguas.
 
-### RC5 - Nível de educação e informação sobre carreiras
+### RC4 - Alegria e bem-estar interior (ABEI)
+- Esta componente principal tem em conta a satisfação do estudante com a sua vida e o significado da mesma para si próprio. Esta componente principal também tem em conta os sentimentos positivos do estudante, sendo estes sentimentos como pertença, conforto com o seu corpo e a sua aparência, ausência de receio de falhar, resiliência e bom relacionamento com os pais.
+
+
+### RC5 - Nível de educação e informação sobre carreiras (NEIC)
 - Esta componente principal tem em conta o nível de educação do estudante e a informação que este tem sobre carreiras a seguir. No que diz respeito à informação que estudante tem sobre carreiras a seguir tem-se em conta a informação que o mesmo tem em geral e, também, a informação sobre este tema que lhe foi fornecida pela escola.
 
-### RC6 - Mudanças
-- Explicar
+### RC6 - Mudança de escola (ME)
+- Esta componente principal tem em conta o total de vezes que o estudante mudou de escola.
 
 
 ```{r}
@@ -294,11 +295,11 @@ sd(pc6sc$scores[,1])
 ```
 
 ```{r}
-IrlandaImput$Intelligence <- pc6sc$scores[,1] # RC1 - Resultados escolares
-IrlandaImput$Socioeconomic <- pc6sc$scores[,2] # RC3 - Estatuto socio-económico
-IrlandaImput$SchoolSupport <- pc6sc$scores[,3] # RC2 - Apoio por parte do professor
-IrlandaImput$Hapiness <- pc6sc$scores[,4] # RC4 - Alegria e bem-estar interior
-IrlandaImput$CareerAwareness <- pc6sc$scores[,5] # RC5 - Nível de educação e informação sobre carreiras
+IrlandaImput$SA <- pc6sc$scores[,1] # RC1 - Resultados escolares
+IrlandaImput$ESE <- pc6sc$scores[,2] # RC3 - Estatuto socio-económico
+IrlandaImput$APP <- pc6sc$scores[,3] # RC2 - Apoio por parte do professor
+IrlandaImput$ABEI <- pc6sc$scores[,4] # RC4 - Alegria e bem-estar interior
+IrlandaImput$NEIC <- pc6sc$scores[,5] # RC5 - Nível de educação e informação sobre carreiras
 IrlandaImput$Changes <- pc6sc$scores[,6] # RC6 - Mudanças
 ```
 
@@ -315,7 +316,6 @@ IrlandaImput[, 37:42]
 IrlandaFinal<- IrlandaImputInc %>% select("ST004D01T", "AGE", "IMMIG", "HISCED", "FISCED", "MISCED", "ISCEDL")
 IrlandaFinal <- IrlandaFinal %>% 
   bind_cols(IrlandaImput[, 37:42])
-
 ```
 
 ```{r}
@@ -355,8 +355,8 @@ pc_dist <- dist(IrlandaImput[, 37:42])
 hclust  <- hclust(pc_dist, method='complete')
 plot(hclust, hang=-1, labels=FALSE)
 
-groups.k5_c <- cutree(hclust, k=3)
-rect.hclust(hclust, k=3, border="red")
+groups.k5_c <- cutree(hclust, k=2)
+rect.hclust(hclust, k=2, border="red")
 ```
 
 ```{r}
@@ -390,14 +390,46 @@ table(groups.k5, IrlandaImput$cluster)
 ```
 
 ```{r}
-#Barplot of average score in each principal component within each cluster
+# Barplot of average score in each principal component within each cluster
+
 barplot(colMeans(subset(IrlandaImput,cluster==1)[,37:42]),main= "Cluster 1 - Average score in each principal component", cex.names = 0.70)
+
 barplot(colMeans(subset(IrlandaImput,cluster==2)[,37:42]),main= "Cluster 2 - Average score in each principal component", cex.names = 0.70)
+
 barplot(colMeans(subset(IrlandaImput,cluster==3)[,37:42]),main= "Cluster 3 - Average score in each principal component",  cex.names = 0.70)
-# barplot(colMeans(subset(IrlandaImput,cluster==4)[,44:49]),main= "Cluster 4 - Average score in each principal component", cex.names = 0.70)
-# barplot(colMeans(subset(IrlandaImput,cluster==5)[,44:49]),main= "Cluster 5 - Average score in each principal component", cex.names = 0.70)
-# barplot(colMeans(subset(IrlandaImput,cluster==6)[,44:49]),main= "Cluster 6 - Average score in each principal component", cex.names = 0.70)
 ```
+
+```{r}
+IrlandaFinal[,1:7]
+```
+```{r}
+IrlandaImput <- cbind(IrlandaImput, IrlandaFinal[, 1:7])
+```
+
+```{r}
+IrlandaImput[, 43:50]
+```
+
+```{r}
+prop.table(table(subset(IrlandaImput,cluster==2)[,46]))
+```
+```{r}
+IrlandaImput %>% select(IMMIG) %>% unique()
+```
+
+
+```{r}
+barplot(prop.table(table(subset(IrlandaImput,cluster==2)[, 46])),main= "Cluster 2 vs. IMMIG")
+```
+
+```{r}
+barplot(prop.table(table(subset(IrlandaImput,cluster==3)["HISCED"])),main= "Cluster 2 vs. HISCED")
+```
+
+```{r}
+IrlandaImput[,37:42]
+```
+
 
 ```{r}
 std_data <- scale(IrlandaImput[,37:42])
@@ -409,7 +441,7 @@ table(groups.k5,pam.k4$clustering)
 ```
 
 ```{r}
-clusplot(pam.k4, labels = F, col.p = pam.k4$clustering)
+clusplot(pam.k4, labels = T, col.p = pam.k4$clustering)
 ```
 
 ```{r}
@@ -437,10 +469,11 @@ head(results.G6$classification, 5) # Cluster assignment of each observation
 ```
 
 ```{r}
-# select VVI -> Variable Volume, Variable shape, Coordinate axes
+# select VVE -> Variable Volume, Variable shape, Equal Orientation
 plot(results.G6, what = "classification")
 ```
 
 ```{r}
 plot(results.G6, what = "uncertainty",)
 ```
+

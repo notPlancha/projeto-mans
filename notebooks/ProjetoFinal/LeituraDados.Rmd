@@ -116,7 +116,7 @@ dim(Irlanda)
 Antes de prosseguirmos para a limpeza dos dados, iremos primeiro implementar o teste de Little (MCAR)
 
 ```{r}
-mcar_test(Irlanda[, 0:40])
+mcar_test(Irlanda[, 0:50])
 ```
 
 O teste MCAR (Missing Completely at Random) é um teste estatístico usado para avaliar se os dados omissos em um conjunto de dados ocorrem de forma completamente aleatória, por outras palavras, se a probabilidade de um dado estar omisso não está relacionada a nenhum valor observado ou não observado no conjunto de dados. A hipótese nula do teste MCAR é que os dados omissos estão distribuídos de forma aleatória, sem qualquer relação com os dados observados ou não observados.
@@ -131,6 +131,11 @@ Podemos então concluir que como $P.Value = 1 > \alpha = 0.05$, não rejeitamos 
 null_percentage <- rowSums(is.na(Irlanda)) / ncol(Irlanda)
 Irlanda <- Irlanda[null_percentage < 0.2, ]
 ```
+
+```{r}
+dim(Irlanda)
+```
+
 
 ### Colunas com omissos
 #### Com Imputação
