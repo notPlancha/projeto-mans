@@ -224,7 +224,10 @@ round(pc12r$communality,2)
 ### RC4 - Alegria e bem-estar interior (ABEI)
 - Esta componente principal tem em conta a satisfação do estudante com a sua vida e o significado da mesma para si próprio. Esta componente principal também tem em conta os sentimentos positivos do estudante, sendo estes sentimentos como pertença, conforto com o seu corpo e a sua aparência, ausência de receio de falhar, resiliência e bom relacionamento com os pais.
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1815b8e85d2f32d1e42803d2bf469da5d54213b4
 ### RC5 - Nível de educação e informação sobre carreiras (NEIC)
 - Esta componente principal tem em conta o nível de educação do estudante e a informação que este tem sobre carreiras a seguir. No que diz respeito à informação que estudante tem sobre carreiras a seguir tem-se em conta a informação que o mesmo tem em geral e, também, a informação sobre este tema que lhe foi fornecida pela escola.
 
@@ -304,12 +307,12 @@ sd(pc6sc$scores[,1])
 ```
 
 ```{r}
-IrlandaImput$SA <- pc6sc$scores[,1] # RC1 - Resultados escolares
+IrlandaImput$SA <- pc6sc$scores[,1] # RC1 - Sucesso Académico
 IrlandaImput$ESE <- pc6sc$scores[,2] # RC3 - Estatuto socio-económico
 IrlandaImput$APP <- pc6sc$scores[,3] # RC2 - Apoio por parte do professor
 IrlandaImput$ABEI <- pc6sc$scores[,4] # RC4 - Alegria e bem-estar interior
 IrlandaImput$NEIC <- pc6sc$scores[,5] # RC5 - Nível de educação e informação sobre carreiras
-IrlandaImput$Changes <- pc6sc$scores[,6] # RC6 - Mudanças
+IrlandaImput$ME <- pc6sc$scores[,6] # RC6 - Mudança de escola
 ```
 
 ```{r}
