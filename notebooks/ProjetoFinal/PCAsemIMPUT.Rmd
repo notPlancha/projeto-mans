@@ -215,7 +215,6 @@ round(pc12r$communality,2)
 ### RC4 - Alegria e bem-estar interior (ABEI)
 - Esta componente principal tem em conta a satisfação do estudante com a sua vida e o significado da mesma para si próprio. Esta componente principal também tem em conta os sentimentos positivos do estudante, sendo estes sentimentos como pertença, conforto com o seu corpo e a sua aparência, ausência de receio de falhar, resiliência e bom relacionamento com os pais.
 
-
 ### RC5 - Nível de educação e informação sobre carreiras (NEIC)
 - Esta componente principal tem em conta o nível de educação do estudante e a informação que este tem sobre carreiras a seguir. No que diz respeito à informação que estudante tem sobre carreiras a seguir tem-se em conta a informação que o mesmo tem em geral e, também, a informação sobre este tema que lhe foi fornecida pela escola.
 
@@ -432,7 +431,7 @@ head(results.G6$classification, 5) # Cluster assignment of each observation
 ```
 
 ```{r}
-# select VVI -> Variable Volume, Variable shape, Coordinate axes
+# select VVE -> Variable Volume, Variable Shape, Equal Axes
 plot(results.G6, what = "classification")
 ```
 
