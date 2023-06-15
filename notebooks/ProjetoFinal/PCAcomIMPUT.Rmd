@@ -294,12 +294,12 @@ sd(pc6sc$scores[,1])
 ```
 
 ```{r}
-IrlandaNoImput$SA <- pc6sc$scores[,1] # RC1 - Sucesso Académico
-IrlandaNoImput$ESE <- pc6sc$scores[,2] # RC3 - Estatuto socio-económico
-IrlandaNoImput$APP <- pc6sc$scores[,3] # RC2 - Apoio por parte do professor
-IrlandaNoImput$ABEI <- pc6sc$scores[,4] # RC4 - Alegria e bem-estar interior
-IrlandaNoImput$NEIC <- pc6sc$scores[,5] # RC5 - Nível de educação e informação sobre carreiras
-IrlandaNoImput$ME <- pc6sc$scores[,6] # RC6 - Mudança de escola
+IrlandaImput$SA <- pc6sc$scores[,1] # RC1 - Sucesso Académico
+IrlandaImput$ESE <- pc6sc$scores[,2] # RC3 - Estatuto socio-económico
+IrlandaImput$APP <- pc6sc$scores[,3] # RC2 - Apoio por parte do professor
+IrlandaImput$ABEI <- pc6sc$scores[,4] # RC4 - Alegria e bem-estar interior
+IrlandaImput$NEIC <- pc6sc$scores[,5] # RC5 - Nível de educação e informação sobre carreiras
+IrlandaImput$ME <- pc6sc$scores[,6] # RC6 - Mudança de escola
 ```
 
 ```{r}
