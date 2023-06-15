@@ -112,6 +112,15 @@ corrplot(correlation,
          addshade = "positive") # show only upper part
 ```
 
+```{r}
+# Variância acumulada
+variance <- apply(IrlandaImput, 2, var)
+
+cumulative_variance <- cumsum(variance)
+
+cumulative_variance
+```
+
 
 ## Teste de esfericidade de Bartlett em uma matriz de correlação.
 
