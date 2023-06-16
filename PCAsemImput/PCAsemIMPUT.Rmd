@@ -1,0 +1,453 @@
+---
+title: "Projeto Métodos de Aprendizagem Não supervisionados - PCA na base de dados sem Imputação"
+author: "grupo 6sigma"
+date: "2023-05-10"
+output:
+  prettydoc::html_pretty:
+    theme: leonids
+    highlight: github
+---
+
+### Bibliotecas
+
+```{r}
+options(repos = "https://cran.radicaldevelop.com/", repr.plot.width=6, repr.plot.height=6,scipen = 999)
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+               "sjstats", "plotrix", "skimr",
+               "txtplot", "cluster", "tidyverse",
+               "caret", "factoextra", "mclust", "htmlTable",
+               "readr", "naniar", "here", "modeest",
+               "psych", "corrplot", "haven", "kableExtra",
+               "haven", "magrittr", "mice", 
+               "here", "conflicted","arrow"
+)
+here::i_am("mans.Rproj")
+conflict_prefer("filter", "dplyr")
+conflict_scout()
+```
+
+## Leitura dos dados
+
+```{r}
+IrlandaNoImputInc <- arrow::read_csv_arrow(here("data", "IrlandaNoImput.csv"))
+```
+
+### Retirar as variáveis de perfil e irrelevantes
+
+Sabendo que o objetivo é criar PCA's, iremos já retirar os dados de perfil para não induzir o PCA em erro
+
+```{r}
+# Dúvidas em relação às seguintes variáveis: ISCEDL, IMMIG, REPEAT
+Perfil <- c("ST004D01T", "AGE", "IMMIG", "HISCED", "FISCED", "MISCED", "ISCEDL")
+IrlandaNoImput <- IrlandaNoImputInc[, -which(names(IrlandaNoImputInc) %in% Perfil)]
+```
+
+### Visualização de estatísticas
+
+```{r}
+my_skim <- skim_with(numeric = sfl("SEM" = plotrix::std.error,
+                                   "CV" = sjstats::cv,
+                                   "Mode" = ~ modeest::mlv1(., na.rm = T, method = "mfv"),
+                                   "sk" = ~ PerformanceAnalytics::skewness(.,na.rm=T,method = "sample"),
+                                   "ku" = ~ PerformanceAnalytics::kurtosis(., na.rm = T, method = "sample_excess")),
+                     append = T)
+
+IrlandaNoImput[, sapply(IrlandaNoImput, is.numeric)] %>%
+  my_skim() %>%
+  knitr::kable(digits=2, caption = 'Descriptives with histogram', col.names = c("Scale of Measurement","Item","$N_{missing}$","Complete prop.", "$M$","$SD$","$Min$","$P_{25}$", "$Mdn$","$P_{75}$", "$Max$", "Histogram","$SEM$", "$CV$","$Mode$", "$sk$","$ku$"), )
+```
+
+
+
+# Tratamento dos dados
+  Após realizada a limpeza dos dados, podemos então passar finalmente para a criação de PCA, a fim de se conseguir reduzir a dimensionalidade da base de dados, que possui 86 colunas.
+  Antes de prosseguir, é necessário reter alguns pontos sobre como aplicar o PCA:
+
+  1. O PCA é mais eficaz quando as variáveis estão correlacionadas entre si.
+
+  2. Antes de aplicar o PCA, é importante verificar se as variáveis estão em escalas comparáveis. Variáveis em diferentes escalas podem ter diferentes variações e isso pode distorcer a análise do PCA.
+
+## Selecionar Colunas
+
+Devido ao elevado número de colunas, iremos primeiramente eliminar algumas colunas, a fim de facilitar o processo de aplicar o teste KMO, pois,torna-se computacionalmente intensiva
+
+```{r}
+colnames(IrlandaNoImput)
+```
+
+```{r}
+# A variável GRADE faz com que o teste KMO dê erro (variável muito desiquilibrada)
+# Aqui serão apagadas todas as variáveis que, ou podem ser substituidas, ou não tem valor nenhum
+
+Apagar <- c("GRADE", "INFOJOB2", "ICTOUTSIDE", "ICTCLASS", "COMPETE", "ATTLNACT", "DISCLIMA", "ENTUSE", "ICTSCH", "REPEAT")
+
+IrlandaNoImput <- IrlandaNoImput[, -which(names(IrlandaNoImput) %in% Apagar)]
+```
+
+
+## Correlações das colunas
+```{r, results='hide'}
+CorrIrlandaNoImput <- cor(IrlandaNoImput)
+```
+
+## KMO measure
+```{r}
+kmo_result <- KMO(IrlandaNoImput)
+kmo_result
+```
+O KMO (Kaiser-Meyer-Olkin) é uma medida estatística utilizada para avaliar a adequação dos dados para realizar uma análise de fator ou análise de componentes principais (PCA).
+O valor do KMO varia de 0 a 1 e, quanto mais próximo de 1, melhor a adequação dos dados para uma análise de fator ou PCA. Valores de KMO acima de 0,6 são geralmente considerados adequados para análises exploratórias, enquanto valores acima de 0,8 são considerados muito bons.
+
+### Seleceção das melhores variáveis
+Vamos então visualizar as variáveis que não são adequadas para aplica o PCA
+
+```{r}
+# Obtém as variáveis com KMO abaixo de 0.5
+MelhorKMO <- names(kmo_result$MSAi)[kmo_result$MSAi > 0.5]
+IrlandaNoImput <- IrlandaNoImput[, which(names(IrlandaNoImput) %in% MelhorKMO)]
+```
+
+```{r}
+correlation <- cor(IrlandaNoImput)
+
+corrplot(correlation,
+         type = "upper",
+         tl.cex = 0.55,
+         addshade = "positive") # show only upper part
+```
+
+```{r}
+# Variância acumulada
+variance <- apply(IrlandaNoImput, 2, var)
+
+cumulative_variance <- cumsum(variance)
+
+cumulative_variance
+```
+
+## Teste de esfericidade de Bartlett em uma matriz de correlação.
+
+O teste de esfericidade de Bartlett é um teste estatístico que avalia se as variáveis em um conjunto de dados estão correlacionadas entre si. Ele verifica a hipótese nula de que a matriz de correlação populacional é uma matriz de identidade, o que significa que as variáveis são independentes e não correlacionadas.
+
+```{r}
+cortest.bartlett(IrlandaNoImput)
+```
+Se o valor-p (p-value) calculado no teste de esfericidade de Bartlett for menor que 0.05, isso sugere evidências estatísticas para rejeitar a hipótese nula de que as variáveis são independentes e não correlacionadas, por outras palavras, existe uma correlação significativa entre as variáveis em questão. Isso significa que as variáveis não podem ser consideradas independentes, existindo algum grau de relação entre elas.
+
+# Estandardizar os dados
+
+```{r}
+data_scaled <- scale(IrlandaNoImput)
+data_scaled %>% glimpse()
+
+# Dúvida: Estandardizamos os dados de variáveis que não têm distribuição normal?
+```
+
+# PCA
+
+Nesta parte, passaremos então para o processo de criação de PCA's. Podemos então começar por pensar algumas ideias por alto, podendo ser estas:
+
+* **PCA de Desempenho Acadêmico**:
+    - Variáveis de interesse: Pontuações em diferentes domínios acadêmicos, como leitura, matemática e ciências.
+    - Objetivo: Compreender a estrutura subjacente do desempenho acadêmico dos alunos e identificar padrões gerais de habilidades e competências.
+
+* **PCA de Fatores Socioeconômicos**:
+    - Variáveis de interesse: Variáveis socioeconômicas, como o nível de educação dos pais, ocupação dos pais, renda familiar, acesso a recursos educacionais, etc.
+    - Objetivo: Explorar as relações entre os fatores socioeconômicos e o desempenho acadêmico dos alunos, bem como identificar grupos de alunos com perfis socioeconômicos semelhantes.
+
+* **PCA de Atitudes e Comportamentos**:
+    - Variáveis de interesse: Variáveis relacionadas a atitudes, motivação, autoeficácia, disciplina, participação em atividades extracurriculares, etc.
+    - Objetivo: Identificar padrões de atitudes e comportamentos dos alunos que podem influenciar seu desempenho académico e bem-estar geral.
+
+* **PCA de Ambiente Escolar**:
+    - Variáveis de interesse: Variáveis relacionadas ao ambiente escolar, como tamanho da turma, recursos educacionais disponíveis, clima escolar, relacionamento professor-aluno, etc.
+    - Objetivo: Explorar a relação entre o ambiente escolar e o desempenho dos alunos, bem como identificar características importantes do ambiente que afetam o aprendizado.
+
+## Criação do PCA
+
+```{r}
+dim(data_scaled)
+```
+
+```{r}
+pc1 <- principal(data_scaled, nfactors=20, rotate="none")
+```
+
+### Kaiser Criterion
+
+```{r}
+valores <- round(pc1$values,3)
+valores
+```
+Visualizando os valores acima, podemos então concluir que existem ```{r} length(valores[valores > 1]) ``` PCA's recomendados, pois, possuem um valor próprio superior a 1. Para uma melhor escolha de PCA's, iremos visualizar os valores do gráfico, a fim de escolher o melhor número de PCA's possivel.
+
+```{r}
+length(valores[valores > 1])
+```
+
+```{r}
+plot(pc1$values, type = "b", main = "Scree plot for Ireland dataset", 
+     xlab = "Number of PC", ylab = "Eigenvalue")
+```
+Analisando o gráfico com atenção, é possível visualizar que existem várias quedas brutas, devido a isso, serão realizados vários testes com diferentes valores.
+
+## PCA
+
+Para uma melhor análise, é necessário ter conhecimento de algumas componentes e, para tal, de seguida teremos cada uma explicada de forma simples:
+
+> SS loadings: Representa a soma dos quadrados das cargas dos componentes principais. Quanto maior o valor, mais bem os componentes capturam a variabilidade dos dados.
+
+> Proportion Var: Indica a proporção da variância total explicada por cada componente principal. Quanto maior o valor, mais bem o componente explica a variabilidade dos dados em relação ao total.
+
+> Cumulative Var: Representa a variância cumulativa explicada pelos componentes principais até o componente atual. É a soma acumulada das proporções de variância. Quanto maior o valor, mais bem os componentes principais explicam a variabilidade total dos dados à medida que adicionam-se mais componentes.
+
+### Experiência com 6
+
+```{r}
+pc12 <- principal(data_scaled, nfactors = 6, rotate = "none")
+pc12$loadings
+round(pc12$communality,2)
+```
+
+```{r}
+# interessante
+pc12r <- principal(data_scaled, nfactors= 6, rotate="varimax")
+pc12r$loadings
+round(pc12r$communality,2)
+```
+### RC1 - Sucesso Académico (SA)
+- Esta componente principal tem em conta os resultados da avaliação do estudante nos três campos de conhecimento (ciências, leitura e matemática) bem como a dificuldade percepcionada pelo mesmo e, também, a sua percepção quer sobre dificuldade do teste, quer sobre a sua competência.
+
+### RC3 - Estatuto socio-económico (ESE)
+- Esta componente principal tem em com conta as posses do estudante em casa bem como o seu estatuto económico, social e cultural. Esta componente principal também tem em atenção os recursos que o estudante tem quer em casa, quer no que diz respeito a ICT por si só.
+
+### RC2 - Apoio por parte do professor (APP)
+- Esta componente principal tem em conta a percepção do estudante quer no que diz respeito interesse do professor, quer no que diz respeito ao estímulo proveniente do mesmo para que os estudantes leiam. Esta componente principal também tem em conta a adaptabilidade do ensino do professor e apoio deste em aulas sobre línguas.
+
+### RC4 - Alegria e bem-estar interior (ABEI)
+- Esta componente principal tem em conta a satisfação do estudante com a sua vida e o significado da mesma para si próprio. Esta componente principal também tem em conta os sentimentos positivos do estudante, sendo estes sentimentos como pertença, conforto com o seu corpo e a sua aparência, ausência de receio de falhar, resiliência e bom relacionamento com os pais.
+
+### RC5 - Nível de educação e informação sobre carreiras (NEIC)
+- Esta componente principal tem em conta o nível de educação do estudante e a informação que este tem sobre carreiras a seguir. No que diz respeito à informação que estudante tem sobre carreiras a seguir tem-se em conta a informação que o mesmo tem em geral e, também, a informação sobre este tema que lhe foi fornecida pela escola.
+
+### RC6 - Mudança de escola (ME)
+- Esta componente principal tem em conta o total de vezes que o estudante mudou de escola.
+
+
+```{r}
+pc12o <- principal(data_scaled, nfactors= 6, rotate="oblimin")
+pc12o$loadings
+round(pc12o$communality,2)
+```
+
+```{r}
+pc12pro <- principal(data_scaled, nfactors= 6, rotate="promax")
+pc12pro$loadings
+round(pc12pro$communality,2)
+```
+
+```{r}
+pc12qua <- principal(data_scaled, nfactors= 6, rotate="quartimin")
+pc12qua$loadings
+round(pc12qua$communality,2)
+```
+
+```{r}
+pc12equ <- principal(data_scaled, nfactors= 6, rotate="equamax")
+pc12equ$loadings
+round(pc12equ$communality,2)
+```
+
+### Experiência com 7
+
+```{r}
+pc7 <- principal(data_scaled, nfactors = 7, rotate = "none")
+pc7$loadings
+round(pc7$communality,2)
+```
+
+```{r}
+pc7r <- principal(data_scaled, nfactors= 7, rotate="varimax")
+pc7r$loadings
+round(pc7r$communality,2)
+```
+
+```{r}
+pc7o <- principal(data_scaled, nfactors= 7, rotate="oblimin")
+pc7o$loadings
+round(pc7o$communality,2)
+```
+
+```{r}
+pc7pro <- principal(data_scaled, nfactors= 7, rotate="promax")
+pc7pro$loadings
+round(pc7pro$communality,2)
+```
+
+```{r}
+pc7qua <- principal(data_scaled, nfactors= 7, rotate="quartimin")
+pc7qua$loadings
+round(pc7qua$communality,2)
+```
+
+```{r}
+pc7equ <- principal(data_scaled, nfactors= 7, rotate="equamax")
+pc7equ$loadings
+round(pc12equ$communality,2)
+```
+
+- - -
+```{r}
+pc6sc <- principal(data_scaled, nfactors = 6, rotate = "varimax", scores = TRUE)
+round(pc6sc$scores,3)
+
+mean(pc6sc$scores[,1])
+sd(pc6sc$scores[,1])
+```
+
+```{r}
+IrlandaNoImput$SA <- pc6sc$scores[,1] # RC1 - Sucesso Académico
+IrlandaNoImput$ESE <- pc6sc$scores[,2] # RC3 - Estatuto socio-económico
+IrlandaNoImput$APP <- pc6sc$scores[,3] # RC2 - Apoio por parte do professor
+IrlandaNoImput$ABEI <- pc6sc$scores[,4] # RC4 - Alegria e bem-estar interior
+IrlandaNoImput$NEIC <- pc6sc$scores[,5] # RC5 - Nível de educação e informação sobre carreiras
+IrlandaNoImput$ME <- pc6sc$scores[,6] # RC6 - Mudança de escola
+```
+
+```{r}
+dim(IrlandaNoImput)
+```
+
+```{r}
+IrlandaNoImput[, 37:42]
+```
+
+
+```{r}
+IrlandaFinal<- IrlandaNoImputInc %>% select("ST004D01T", "AGE", "IMMIG", "HISCED", "FISCED", "MISCED", "ISCEDL")
+IrlandaFinal <- IrlandaFinal %>% 
+  bind_cols(IrlandaNoImput[, 37:42])
+```
+
+```{r}
+IrlandaFinal
+```
+
+```{r}
+corr <- cor(IrlandaNoImput[, 37:42])
+par(oma = c(2, 2, 2, 2))   # space rounf the graph
+corrplot.mixed(corr,
+        order = "hclust",
+        tl.pos = "lt",
+        upper = "ellipse")
+```
+
+```{r}
+pc_dist <- dist(IrlandaNoImput[, 37:42])
+hclust  <- hclust(pc_dist, method='ward.D2')
+plot(hclust, hang=-1, labels=FALSE)
+
+groups.k5 <- cutree(hclust, k = 3)
+rect.hclust(hclust, k = 3, border="red")
+```
+
+```{r}
+# 4 ou 5 clusters?
+plot(silhouette(groups.k5, pc_dist))
+```
+
+```{r}
+pc_dist <- dist(IrlandaNoImput[, 37:42])
+hclust  <- hclust(pc_dist, method='complete')
+plot(hclust, hang=-1, labels=FALSE)
+
+groups.k5_c <- cutree(hclust, k=3)
+rect.hclust(hclust, k=3, border="red")
+```
+
+```{r}
+plot(silhouette(groups.k5_c, pc_dist))
+```
+
+```{r}
+table(groups.k5,groups.k5_c)
+```
+
+```{r}
+# K-Means: number of clusters
+wssplot <- function(xx, nc=15, seed=1234){
+  wss <- (nrow(xx)-1)*sum(apply(xx,2,var))
+  for (i in 2:nc){
+    set.seed(seed)
+    wss[i] <- sum(kmeans(xx, centers=i)$withinss)}
+  plot(1:nc, wss, type="b", xlab="Number of Clusters",
+       ylab="Within groups sum of squares")}
+wssplot(IrlandaNoImput[, 37:42], nc=10)
+```
+
+```{r}
+#K-means cluster com K=2
+kmeans.k6 <- kmeans(IrlandaNoImput[, 37:42], 3, nstart=100)
+IrlandaNoImput = IrlandaNoImput %>% mutate(cluster = kmeans.k6$cluster)
+```
+
+```{r}
+table(groups.k5, IrlandaNoImput$cluster)
+```
+
+```{r}
+#Barplot of average score in each principal component within each cluster
+barplot(colMeans(subset(IrlandaNoImput,cluster==1)[,37:42]),main= "Cluster 1 - Average score in each principal component", cex.names = 0.70)
+barplot(colMeans(subset(IrlandaNoImput,cluster==2)[,37:42]),main= "Cluster 2 - Average score in each principal component", cex.names = 0.70)
+barplot(colMeans(subset(IrlandaNoImput,cluster==3)[,37:42]),main= "Cluster 3 - Average score in each principal component",  cex.names = 0.70)
+# barplot(colMeans(subset(IrlandaNoImput,cluster==4)[,44:49]),main= "Cluster 4 - Average score in each principal component", cex.names = 0.70)
+# barplot(colMeans(subset(IrlandaNoImput,cluster==5)[,44:49]),main= "Cluster 5 - Average score in each principal component", cex.names = 0.70)
+# barplot(colMeans(subset(IrlandaNoImput,cluster==6)[,44:49]),main= "Cluster 6 - Average score in each principal component", cex.names = 0.70)
+```
+
+```{r}
+std_data <- scale(IrlandaNoImput[,37:42])
+pam.k4 <- pam(std_data, 3)
+```
+
+```{r}
+table(groups.k5,pam.k4$clustering)
+```
+
+```{r}
+clusplot(pam.k4, labels = F, col.p = pam.k4$clustering)
+```
+
+```{r}
+data <- IrlandaNoImput[,37:42]
+
+BIC <- mclustBIC(data)
+plot(BIC)
+```
+
+```{r}
+### GMM
+set.seed(1233)
+
+# Apply GMM with 2 components
+results.G6 <- Mclust(data, G = 3)
+summary(results.G6, parameters = TRUE)
+```
+
+```{r}
+# Some results
+results.G6$modelName          # Optimal selected model
+results.G6$G                  # Optimal number of cluster
+head(results.G6$z, 5)         # Probability to belong to a given cluster
+head(results.G6$classification, 5) # Cluster assignment of each observation
+```
+
+```{r}
+# select VVE -> Variable Volume, Variable Shape, Equal Axes
+plot(results.G6, what = "classification")
+```
+
+```{r}
+plot(results.G6, what = "uncertainty")
+```
